@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 기초 이론 - Summary</title>
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+<div class="slide-title">1교시 요약</div>
+    <div class="slide-content">
+        <h2>📝 핵심 내용 정리</h2>
+        
+        <h3>🎯 학습한 내용</h3>
+        <ul>
+            <li><span class="highlight">NGS 기술 발전</span>: 1세대 → 2세대 → 3세대</li>
+            <li><span class="highlight">주요 플랫폼</span>: Illumina, PacBio, Oxford Nanopore</li>
+            <li><span class="highlight">FASTQ 포맷</span>: 헤더, 서열, 품질 점수</li>
+            <li><span class="highlight">품질 평가</span>: Phred Score, Q30 기준</li>
+            <li><span class="highlight">시퀀싱 에러</span>: 치환, 삽입/결실, 품질 저하</li>
+            <li><span class="highlight">FastQC 분석</span>: 품질 리포트 해석</li>
+        </ul>
+
+        <h3>🔍 다음 시간 예고</h3>
+        <ul>
+            <li>WGS 분석 파이프라인 전체 워크플로우</li>
+            <li>단계별 분석 도구와 파라미터</li>
+            <li>실제 분석 과정 시연</li>
+        </ul>
+
+        <div style="margin-top: 40px; padding: 20px; background: #e8f5e8; border-radius: 8px;">
+            <h3>❓ 질문 시간</h3>
+            <p>궁금한 점이나 추가 설명이 필요한 부분이 있으면 언제든 질문해주세요!</p>
+        </div>
+    </div>
+</div>
+
+
+<div class="slide-number">
+    <span id="slideNumber">1</span> / 18
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()"disabled>다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 21 / 21</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide20.html";
+    }
+    
+    function nextSlide() {
+        return false;
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

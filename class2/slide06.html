@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 분석 파이프라인 - Multisample Genotyping</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { 
+            background: #1e1e1e; 
+            border: 1px solid #333; 
+            padding: 20px; 
+            border-radius: 8px; 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            margin: 15px 0; 
+            color: #00ff00;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .code-block::before {
+            content: "";
+            color: #00ff00;
+            font-weight: bold;
+        }
+        .code-block code { 
+            white-space: pre-wrap; 
+            color: #00ff00;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+            background: #555;
+        }
+        .copy-btn.copied {
+            background: #00ff00;
+            color: #000;
+        }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">단계 5: Multisample Genotyping Matrix 생성</div>
+    <div class="slide-content">
+        <h2>🤝 여러 샘플의 변이를 통합하고 정제하기</h2>
+        <p>개별 샘플에서 변이를 검출한 후, 여러 샘플의 변이 정보를 통합하여 하나의 대규모 유전자형 매트릭스(Genotype Matrix)를 생성하는 과정입니다. 이는 코호트 분석, GWAS(Genome-Wide Association Study) 등 후속 분석의 필수 단계입니다.</p>
+
+        <h3>🛠️ 주요 도구 및 워크플로우</h3>
+        <div class="comparison-table">
+            <div class="comparison-item" style="border-left-color: #2196f3;">
+                <h4><i class="fas fa-dna"></i> GATK GenotypeGVCFs</h4>
+                <ul>
+                    <li>GATK Best Practices 워크플로우의 핵심 단계.</li>
+                    <li>개별 샘플의 gVCF(Genomic VCF) 파일을 입력으로 받아 통합 VCF 생성.</li>
+                    <li><strong>장점:</strong> 높은 정확도, GATK 파이프라인과의 완벽한 호환성, 다양한 필터링 옵션.</li>
+                    <li><strong>과정:</strong> HaplotypeCaller로 생성된 gVCF들을 CombineGVCFs로 합친 후 GenotypeGVCFs로 유전자형 호출.</li>
+                </ul>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 1. gVCF 파일 통합 (선택 사항, 대규모 코호트 시 유용)
+gatk CombineGVCFs -R reference.fasta \
+    --variant sample1.g.vcf --variant sample2.g.vcf \
+    -O cohort.g.vcf
+
+# 2. 통합 유전자형 호출
+gatk GenotypeGVCFs -R reference.fasta \
+    --variant cohort.g.vcf \
+    -O cohort_genotyped.vcf</code>
+                </div>
+            </div>
+            <div class="comparison-item" style="border-left-color: #4caf50;">
+                <h4><i class="fas fa-table"></i> bcftools merge / call</h4>
+                <ul>
+                    <li>VCF/BCF 파일을 다루는 강력하고 유연한 명령줄 도구.</li>
+                    <li>여러 VCF 파일을 병합하거나, BAM 파일에서 직접 변이 호출 및 유전자형 생성.</li>
+                    <li><strong>장점:</strong> 빠른 속도, 낮은 메모리 사용량, 다양한 VCF 조작 기능.</li>
+                    <li><strong>과정:</strong> `bcftools merge`로 VCF들을 합치거나, `bcftools call`로 BAM에서 직접 멀티샘플 호출.</li>
+                </ul>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 1. 여러 VCF 파일 병합
+bcftools merge sample1.vcf.gz sample2.vcf.gz \
+    -o merged.vcf.gz
+
+# 2. BAM 파일에서 멀티샘플 유전자형 호출 (대안적 방법)
+bcftools mpileup -f reference.fasta sample1.bam sample2.bam | \
+    bcftools call -mv -o multisample.vcf</code>
+                </div>
+            </div>
+        </div>
+
+        <h3>📊 결과물: Multisample VCF</h3>
+        <ul>
+            <li>모든 샘플의 변이 위치와 각 샘플의 유전자형 정보가 포함된 VCF 파일.</li>
+            <li>각 변이 위치에 대한 깊이(DP), 유전자형 품질(GQ), 대립유전자 빈도(AF) 등 상세 정보 포함.</li>
+            <li>후속 통계 분석, 시각화, 기능 주석(functional annotation)의 기본 데이터로 활용.</li>
+        </ul>
+
+        <h3>🧬 PLINK2를 이용한 집단 유전학 분석</h3>
+        <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+            <p><strong>PLINK2</strong>는 multisample VCF를 이용한 집단 유전학 분석의 표준 도구입니다. 유전적 다양성, 집단 구조, 연관 분석 등 다양한 분석을 수행할 수 있습니다.</p>
+            
+            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #2196f3;">
+                <h4 style="color: #1565c0; margin-top: 0;">👨‍👩‍👧‍👦 가족/계보 정보 분석</h4>
+                <p style="color: #1565c0; font-size: 14px; margin-bottom: 10px;">
+                    PLINK2는 가족 구조를 고려한 분석이 가능하며, 이는 육종 프로그램에서 매우 중요합니다.
+                </p>
+                
+                <div style="background: #bbdefb; padding: 12px; border-radius: 4px; margin: 10px 0;">
+                    <strong style="color: #0d47a1; font-size: 12px;">📋 FAM 파일 형식 (Family Information Format)</strong><br>
+                    <div style="font-family: monospace; font-size: 11px; color: #0d47a1; margin-top: 8px;">
+                        <strong>6개 컬럼 구조:</strong><br>
+                        FID  IID  PID  MID  SEX  PHENO<br><br>
+                        
+                        <strong>컬럼 설명:</strong><br>
+                        • FID: Family ID (가족 ID)<br>
+                        • IID: Individual ID (개체 ID)<br>
+                        • PID: Paternal ID (부계 ID, 0=unknown)<br>
+                        • MID: Maternal ID (모계 ID, 0=unknown)<br>
+                        • SEX: 성별 (1=male, 2=female, 0=unknown)<br>
+                        • PHENO: 표현형 (1=control, 2=case, -9=missing)
+                    </div>
+                </div>
+                
+                <div style="background: #c8e6c9; padding: 12px; border-radius: 4px; margin: 10px 0;">
+                    <strong style="color: #1b5e20; font-size: 12px;">🌱 식물 육종에서의 FAM 파일 예시</strong><br>
+                    <div style="font-family: monospace; font-size: 10px; color: #1b5e20; margin-top: 8px;">
+                        # 교배 조합 기록 예시<br>
+                        Family01  Parent_A   0  0  0  -9<br>
+                        Family01  Parent_B   0  0  0  -9<br>
+                        Family01  F1_001     Parent_A  Parent_B  0  1<br>
+                        Family01  F1_002     Parent_A  Parent_B  0  2<br>
+                        Family02  Elite_01   0  0  0  -9<br>
+                        Family02  Wild_01    0  0  0  -9<br>
+                        Family02  BC1_001    F1_001    Elite_01  0  1<br>
+                        Family02  BC1_002    F1_001    Elite_01  0  2
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 15px 0;">
+                    <div style="background: #fff3e0; padding: 12px; border-radius: 4px;">
+                        <strong style="color: #ef6c00; font-size: 12px;">🔍 가족 기반 분석 명령어</strong><br>
+                        <div class="code-block" style="margin-top: 8px;">
+                            <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                            <code># 가족 내 IBD 계산
+plink2 --bfile dataset \
+    --genome \
+    --family \
+    --out family_ibd
+
+# 멘델 오류 검사
+plink2 --bfile dataset \
+    --mendel \
+    --out mendel_errors
+
+# 가족 구조 고려한 연관분석
+plink2 --bfile dataset \
+    --pheno phenotype.txt \
+    --family \
+    --glm \
+    --out family_gwas</code>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e8f5e8; padding: 12px; border-radius: 4px;">
+                        <strong style="color: #2e7d32; font-size: 12px;">📊 육종에서의 활용</strong><br>
+                        <ul style="color: #2e7d32; font-size: 11px; margin: 8px 0; padding-left: 15px;">
+                            <li><strong>계보 검증:</strong> 기록된 교배와 유전자형 일치 확인</li>
+                            <li><strong>친자 확인:</strong> 의심스러운 계보 관계 검증</li>
+                            <li><strong>유전력 추정:</strong> 가족 내 분산 분석</li>
+                            <li><strong>QTL 매핑:</strong> 가족 내 segregation 분석</li>
+                            <li><strong>근친계수:</strong> 육종 계획 수립</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-top: 10px; border-left: 4px solid #ffc107;">
+                    <strong style="color: #856404; font-size: 12px;">⚠️ 식물 육종에서 주의사항</strong><br>
+                    <div style="color: #856404; font-size: 11px; margin-top: 5px;">
+                        <strong>• 성별 정보:</strong> 자웅동체 식물의 경우 성별을 0으로 설정<br>
+                        <strong>• 클론 번식:</strong> 영양번식체는 동일 개체로 처리 필요<br>
+                        <strong>• 세대 표기:</strong> F1, F2, BC1 등 세대 정보를 Family ID에 포함<br>
+                        <strong>• 표현형:</strong> 양적 형질의 경우 별도 파일로 관리 권장
+                    </div>
+                </div>
+                
+                <div class="code-block" style="margin-top: 10px;">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># FAM 파일과 함께 VCF 변환
+plink2 --vcf multisample.vcf.gz \
+    --fam family_info.fam \
+    --make-bed \
+    --out dataset_with_family
+
+# 계보 정보 업데이트
+plink2 --bfile dataset \
+    --update-parents parent_info.txt \
+    --make-bed \
+    --out updated_dataset</code>
+                </div>
+            </div>
+            
+            <h4>🔄 VCF에서 PLINK 형식으로 변환</h4>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># VCF를 PLINK binary format으로 변환
+plink2 --vcf multisample.vcf.gz \
+    --make-bed \
+    --out dataset
+
+# 또는 기본 필터링과 함께 변환
+plink2 --vcf multisample.vcf.gz \
+    --maf 0.05 \
+    --geno 0.1 \
+    --mind 0.1 \
+    --make-bed \
+    --out filtered_dataset</code>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #1976d2; margin-top: 0;">📈 기본 통계</h5>
+                    <div class="code-block" style="margin-top: 10px;">
+                        <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                        <code># 대립유전자 빈도 계산
+plink2 --bfile dataset \
+    --freq \
+    --out allele_freq
+
+# Hardy-Weinberg 평형 검정
+plink2 --bfile dataset \
+    --hardy \
+    --out hwe_test
+
+# Missing data 비율
+plink2 --bfile dataset \
+    --missing \
+    --out missing_data</code>
+                    </div>
+                </div>
+                
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #388e3c; margin-top: 0;">🏗️ 집단 구조 분석</h5>
+                    <div class="code-block" style="margin-top: 10px;">
+                        <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                        <code># PCA (주성분 분석)
+plink2 --bfile dataset \
+    --pca 10 \
+    --out pca_results
+
+# IBD (Identity By Descent)
+plink2 --bfile dataset \
+    --genome \
+    --out ibd_analysis
+
+# 연관 불균형 (LD) 계산
+plink2 --bfile dataset \
+    --ld-window-r2 0.2 \
+    --out ld_results</code>
+                    </div>
+                </div>
+                
+                <div style="background: #fff3e0; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #f57c00; margin-top: 0;">🔍 GWAS 준비</h5>
+                    <div class="code-block" style="margin-top: 10px;">
+                        <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                        <code># 품질 필터링
+plink2 --bfile dataset \
+    --maf 0.01 \
+    --geno 0.05 \
+    --hwe 1e-6 \
+    --make-bed \
+    --out gwas_ready
+
+# 기본 연관 분석
+plink2 --bfile gwas_ready \
+    --pheno phenotype.txt \
+    --glm \
+    --out association
+
+# 집단 층화 보정
+plink2 --bfile gwas_ready \
+    --pheno phenotype.txt \
+    --covar pca_results.eigenvec \
+    --glm \
+    --out stratified_gwas</code>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                <h4 style="color: #856404; margin-top: 0;">📋 주요 PLINK2 파라미터</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+                    <div>
+                        <h5 style="color: #856404; margin-top: 0;">🔧 필터링 옵션</h5>
+                        <ul style="color: #856404; font-size: 14px;">
+                            <li><strong>--maf 0.05:</strong> Minor Allele Frequency ≥ 5%</li>
+                            <li><strong>--geno 0.1:</strong> SNP missing rate ≤ 10%</li>
+                            <li><strong>--mind 0.1:</strong> Individual missing rate ≤ 10%</li>
+                            <li><strong>--hwe 1e-6:</strong> Hardy-Weinberg p-value ≥ 1e-6</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="color: #856404; margin-top: 0;">📊 분석 옵션</h5>
+                        <ul style="color: #856404; font-size: 14px;">
+                            <li><strong>--pca:</strong> 주성분 분석 수행</li>
+                            <li><strong>--genome:</strong> IBD/IBS 계산</li>
+                            <li><strong>--glm:</strong> 일반화 선형 모델 연관 분석</li>
+                            <li><strong>--covar:</strong> 공변량 파일 지정</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <h4 style="color: #1565c0; margin-top: 0;">💡 식물 게놈에서 PLINK2 활용</h4>
+                <ul style="color: #1565c0; font-size: 14px;">
+                    <li><strong>품종 구분:</strong> PCA를 통한 재배종/야생종 집단 구조 분석</li>
+                    <li><strong>유전적 다양성:</strong> 이형접합도, 근친교배 계수 계산</li>
+                    <li><strong>QTL 매핑:</strong> 양적 형질과 연관된 SNP 탐지</li>
+                    <li><strong>계통 추적:</strong> IBD 분석을 통한 혈통 관계 규명</li>
+                    <li><strong>선발 신호:</strong> FST, 연관 불균형을 통한 자연/인위 선택 탐지</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h3 style="color: #495057; margin-top: 0;">📚 핵심 개념 이해하기</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                    <h4 style="color: #1565c0; margin-top: 0;">📊 대립유전자 빈도 (Allele Frequency)</h4>
+                    <p style="color: #1565c0; font-size: 14px; margin-bottom: 10px;">
+                        집단에서 특정 대립유전자가 나타나는 비율로, 유전적 다양성의 기본 척도입니다.
+                    </p>
+                    <div style="background: #bbdefb; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        <strong style="color: #0d47a1;">계산 예시:</strong><br>
+                        <span style="font-family: monospace; font-size: 12px; color: #0d47a1;">
+                        SNP 위치에서 A/G 변이<br>
+                        100개체: AA(30), AG(50), GG(20)<br>
+                        A 대립유전자 = (30×2 + 50×1) / (100×2) = 0.55<br>
+                        G 대립유전자 = (20×2 + 50×1) / (100×2) = 0.45
+                        </span>
+                    </div>
+                    <ul style="color: #1565c0; font-size: 13px;">
+                        <li><strong>MAF (Minor Allele Frequency):</strong> 더 적은 빈도의 대립유전자</li>
+                        <li><strong>일반적 필터링:</strong> MAF < 0.01-0.05 제거</li>
+                        <li><strong>의미:</strong> 희귀 변이는 통계력 부족으로 분석 제외</li>
+                    </ul>
+                    
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                        <h5 style="color: #856404; margin-top: 0;">⚠️ 육종가를 위한 MAF 필터링 주의사항</h5>
+                        <p style="color: #856404; font-size: 13px; margin-bottom: 10px;">
+                            <strong>육종 프로그램에서는 MAF 필터링을 신중하게 고려해야 합니다!</strong>
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 10px 0;">
+                            <div style="background: #f8d7da; padding: 10px; border-radius: 4px;">
+                                <strong style="color: #721c24; font-size: 12px;">❌ MAF 필터링의 문제점</strong><br>
+                                <ul style="color: #721c24; font-size: 11px; margin: 5px 0; padding-left: 15px;">
+                                    <li>귀중한 희귀 대립유전자 손실</li>
+                                    <li>내병성, 환경 적응성 유전자 제거</li>
+                                    <li>유전적 다양성 인위적 축소</li>
+                                    <li>미래 선발 잠재력 감소</li>
+                                </ul>
+                            </div>
+                            <div style="background: #d4edda; padding: 10px; border-radius: 4px;">
+                                <strong style="color: #155724; font-size: 12px;">✅ 육종에서 희귀 변이의 가치</strong><br>
+                                <ul style="color: #155724; font-size: 11px; margin: 5px 0; padding-left: 15px;">
+                                    <li>병원체 저항성 유전자</li>
+                                    <li>극한 환경 적응 유전자</li>
+                                    <li>특수 품질 형질</li>
+                                    <li>잡종강세 기여 유전자</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #cce5ff; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #004085; font-size: 12px;">💡 육종가를 위한 권장사항:</strong><br>
+                            <div style="color: #004085; font-size: 11px; margin-top: 5px;">
+                                <strong>• 연구 목적에 따른 차별적 적용:</strong><br>
+                                - GWAS/QTL 매핑: MAF > 0.05 필터링 적용<br>
+                                - 유전적 다양성 평가: MAF 필터링 최소화<br>
+                                - 선발/교배 계획: 모든 변이 보존<br>
+                                - 게놈 선발: 낮은 MAF 허용 (> 0.01)
+                            </div>
+                        </div>
+                        
+                        <div style="background: #ffe6e6; padding: 12px; border-radius: 4px; margin-top: 10px; border-left: 4px solid #dc3545;">
+                            <h6 style="color: #721c24; margin-top: 0; font-size: 12px;">📊 통계적 검정력의 딜레마</h6>
+                            <div style="color: #721c24; font-size: 11px;">
+                                <strong>희귀 대립유전자의 통계적 한계:</strong><br>
+                                • MAF가 낮을수록 유의한 연관성을 탐지하기 어려움<br>
+                                • 동일한 효과크기라도 MAF에 따라 검정력 급격히 감소<br>
+                                • 표본 크기를 늘려도 근본적 한계 존재
+                            </div>
+                            
+                            <div style="background: #f8d7da; padding: 8px; border-radius: 4px; margin: 8px 0;">
+                                <strong style="color: #721c24; font-size: 10px;">검정력 계산 예시:</strong><br>
+                                <span style="font-family: monospace; font-size: 9px; color: #721c24;">
+                                동일 효과크기 (Cohen's d = 0.5), 1000개체:<br>
+                                MAF = 0.50: 검정력 > 99%<br>
+                                MAF = 0.10: 검정력 ≈ 80%<br>
+                                MAF = 0.05: 검정력 ≈ 50%<br>
+                                MAF = 0.01: 검정력 < 20%
+                                </span>
+                            </div>
+                            
+                            <div style="color: #721c24; font-size: 11px;">
+                                <strong>⚖️ 육종가의 딜레마:</strong><br>
+                                통계적으로 탐지되지 않는 희귀 변이가 실제로는 중요한 육종 가치를 가질 수 있음
+                            </div>
+                        </div>
+                        
+                        <div style="background: #e2f3ff; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #0c63e4; font-size: 11px;">실제 사례:</strong>
+                            <span style="color: #0c63e4; font-size: 10px;">
+                                벼 Pi-ta 유전자 (도열병 저항성)는 일부 집단에서 MAF < 0.02였지만, 
+                                현재 전 세계적으로 중요한 저항성 유전자로 활용되고 있습니다. 
+                                초기 GWAS에서는 통계적 유의성에 도달하지 못했을 가능성이 높습니다.
+                            </span>
+                        </div>
+                        
+                        <div style="background: #d1ecf1; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #0c5460; font-size: 12px;">🔬 대안적 접근 방법:</strong><br>
+                            <div style="color: #0c5460; font-size: 11px; margin-top: 5px;">
+                                <strong>1. 후보 유전자 접근:</strong> 기능적 중요성이 알려진 유전자 우선 분석<br>
+                                <strong>2. 집단별 분석:</strong> MAF가 높은 특정 집단에서 별도 분석<br>
+                                <strong>3. 메타 분석:</strong> 여러 소규모 연구 결과 통합<br>
+                                <strong>4. 효과크기 중심:</strong> p-value보다 실제 효과 크기에 집중<br>
+                                <strong>5. 기능 검증:</strong> 통계적 유의성과 무관하게 생물학적 기능 직접 검증
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                    <h4 style="color: #2e7d32; margin-top: 0;">⚖️ Hardy-Weinberg 평형 (HWE)</h4>
+                    <p style="color: #2e7d32; font-size: 14px; margin-bottom: 10px;">
+                        무작위 교배 집단에서 대립유전자 빈도와 유전자형 빈도 간의 예상 관계입니다.
+                    </p>
+                    
+                    <div style="background: #a5d6a7; padding: 15px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #388e3c;">
+                        <h5 style="color: #1b5e20; margin-top: 0;">💡 직관적 이해: 이형접합체 자가교배와 동일!</h5>
+                        <p style="color: #1b5e20; font-size: 13px; margin-bottom: 10px;">
+                            <strong>집단의 무작위 교배 = 이형접합체 자가교배</strong>와 같은 결과를 낳습니다.
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 10px 0;">
+                            <div style="background: #c8e6c9; padding: 10px; border-radius: 4px;">
+                                <strong style="color: #1b5e20; font-size: 12px;">🌱 이형접합체 자가교배</strong><br>
+                                <span style="font-family: monospace; font-size: 11px; color: #1b5e20;">
+                                Aa × Aa 교배<br>
+                                결과: AA(1/4), Aa(1/2), aa(1/4)<br>
+                                = p²:2pq:q² (p=q=0.5)
+                                </span>
+                            </div>
+                            <div style="background: #c8e6c9; padding: 10px; border-radius: 4px;">
+                                <strong style="color: #1b5e20; font-size: 12px;">🏘️ 집단 무작위 교배</strong><br>
+                                <span style="font-family: monospace; font-size: 11px; color: #1b5e20;">
+                                A(p) × A(p) → AA(p²)<br>
+                                A(p) × a(q) → Aa(2pq)<br>
+                                a(q) × a(q) → aa(q²)
+                                </span>
+                            </div>
+                        </div>
+                        <div style="background: #dcedc8; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #1b5e20; font-size: 12px;">🔑 핵심 통찰:</strong>
+                            <span style="color: #1b5e20; font-size: 11px;">
+                                집단에서 무작위로 두 배우자를 선택하는 것은 마치 전체 집단의 대립유전자 풀(gene pool)에서 
+                                무작위로 두 대립유전자를 뽑아 새로운 개체를 만드는 것과 같습니다. 
+                                이는 Aa 개체의 자가교배에서 A와 a를 무작위로 조합하는 것과 수학적으로 동일한 과정입니다.
+                            </span>
+                        </div>
+                    </div>
+                    <div style="background: #c8e6c9; padding: 15px; border-radius: 4px; margin: 10px 0;">
+                        <strong style="color: #1b5e20;">HWE 상세 계산 예시:</strong><br>
+                        <div style="font-family: monospace; font-size: 12px; color: #1b5e20; margin-top: 10px;">
+                            <strong>SNP rs123456 (A/G 변이)에서 관찰된 데이터:</strong><br>
+                            총 1000개체 - AA: 360개체, AG: 480개체, GG: 160개체<br><br>
+                            
+                            <strong>Step 1: 대립유전자 빈도 계산</strong><br>
+                            A 대립유전자 = (360×2 + 480×1) / (1000×2) = 1200/2000 = 0.6<br>
+                            G 대립유전자 = (160×2 + 480×1) / (1000×2) = 800/2000 = 0.4<br><br>
+                            
+                            <strong>Step 2: HWE 예상 유전자형 빈도 계산</strong><br>
+                            p = 0.6 (A), q = 0.4 (G)<br>
+                            AA 예상 = p² = 0.6² = 0.36 → 360개체<br>
+                            AG 예상 = 2pq = 2×0.6×0.4 = 0.48 → 480개체<br>
+                            GG 예상 = q² = 0.4² = 0.16 → 160개체<br><br>
+                            
+                            <strong>Step 3: Chi-square 검정</strong><br>
+                            χ² = Σ[(관찰-예상)²/예상]<br>
+                            χ² = (360-360)²/360 + (480-480)²/480 + (160-160)²/160<br>
+                            χ² = 0 + 0 + 0 = 0<br>
+                            p-value = 1.0 (완벽한 HWE!)
+                        </div>
+                        
+                        <div style="background: #a5d6a7; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #1b5e20;">HWE 편차 예시:</strong><br>
+                            <div style="font-family: monospace; font-size: 11px; color: #1b5e20;">
+                                근친교배 집단의 경우:<br>
+                                관찰: AA(400), AG(200), GG(400) - 이형접합체 부족<br>
+                                예상: AA(360), AG(480), GG(160)<br>
+                                χ² = (400-360)²/360 + (200-480)²/480 + (400-160)²/160<br>
+                                χ² = 4.44 + 163.33 + 360 = 527.77<br>
+                                p-value < 0.001 (HWE 위반!)
+                            </div>
+                        </div>
+                    </div>
+                    <ul style="color: #2e7d32; font-size: 13px;">
+                        <li><strong>편차 원인:</strong> 근친교배, 집단 층화, 기술적 오류</li>
+                        <li><strong>필터링:</strong> p < 1e-6인 SNP 제거</li>
+                        <li><strong>의미:</strong> 집단 구조나 시퀀싱 오류 탐지</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #fff3e0; padding: 15px; border-radius: 8px; border-left: 4px solid #ff9800;">
+                    <h4 style="color: #ef6c00; margin-top: 0;">🧬 IBD (Identity By Descent)</h4>
+                    <p style="color: #ef6c00; font-size: 14px; margin-bottom: 10px;">
+                        두 개체가 공통 조상으로부터 물려받은 동일한 게놈 영역의 비율입니다.
+                    </p>
+                    <div style="background: #ffe0b2; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        <strong style="color: #e65100;">IBD 값의 의미:</strong><br>
+                        <span style="font-family: monospace; font-size: 12px; color: #e65100;">
+                        IBD = 1.0: 동일 개체 (클론)<br>
+                        IBD = 0.5: 1촌 관계 (부모-자식, 형제)<br>
+                        IBD = 0.25: 2촌 관계 (조부모-손자)<br>
+                        IBD = 0.125: 3촌 관계 (사촌)<br>
+                        IBD ≈ 0: 무관계
+                        </span>
+                    </div>
+                    <ul style="color: #ef6c00; font-size: 13px;">
+                        <li><strong>활용:</strong> 개체 간 혈연관계 파악</li>
+                        <li><strong>품질관리:</strong> 중복 샘플, 샘플 혼동 탐지</li>
+                        <li><strong>집단 분석:</strong> 근친교배 정도 측정</li>
+                    </ul>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-top: 15px; border-left: 4px solid #ff9800;">
+                        <h5 style="color: #ef6c00; margin-top: 0;">🔍 IBD를 이용한 계통 동정 및 데이터베이스 비교</h5>
+                        <p style="color: #ef6c00; font-size: 13px; margin-bottom: 10px;">
+                            <strong>IBD는 게놈 유사성 기반 계통 동정의 강력한 도구입니다!</strong>
+                        </p>
+                        
+                        <div style="background: #ffe0b2; padding: 12px; border-radius: 4px; margin: 10px 0;">
+                            <strong style="color: #e65100; font-size: 12px;">🌾 실제 활용 사례</strong><br>
+                            <div style="color: #e65100; font-size: 11px; margin-top: 5px;">
+                                <strong>1. 미지 계통 동정:</strong><br>
+                                • 수집된 재료의 품종명 불명확 시 기존 데이터베이스와 IBD 비교<br>
+                                • 유전자은행 중복 수집 자료 정리<br>
+                                • 육종 계통의 계보 추적
+                            </div>
+                            <div style="color: #e65100; font-size: 11px; margin-top: 8px;">
+                                <strong>2. 품종 순도 검정:</strong><br>
+                                • 종자 회사 품종의 유전적 순도 확인<br>
+                                • 불법 복제 품종 탐지<br>
+                                • 교잡종 순도 평가
+                            </div>
+                        </div>
+                        
+                        <div class="code-block" style="margin-top: 10px;">
+                            <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                            <code># 미지 샘플과 참조 데이터베이스 IBD 비교
+# 1. 참조 데이터베이스와 미지 샘플 통합
+plink2 --bfile reference_database \
+    --bmerge unknown_sample.bed unknown_sample.bim unknown_sample.fam \
+    --make-bed \
+    --out combined_dataset
+
+# 2. IBD 계산 (미지 샘플 중심)
+plink2 --bfile combined_dataset \
+    --genome \
+    --genome-full \
+    --out ibd_comparison
+
+# 3. 높은 IBD 값 (> 0.9) 샘플 추출
+awk '$10 > 0.9' ibd_comparison.genome > high_similarity.txt</code>
+                        </div>
+                        
+                        <div style="background: #ffcc80; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #e65100; font-size: 11px;">IBD 해석 기준 (계통 동정용):</strong><br>
+                            <span style="font-family: monospace; font-size: 10px; color: #e65100;">
+                            IBD > 0.95: 동일 계통 (Same accession)<br>
+                            IBD 0.8-0.95: 매우 유사한 계통 (Highly similar)<br>
+                            IBD 0.5-0.8: 가까운 혈연 (Close relatives)<br>
+                            IBD 0.2-0.5: 중간 정도 혈연 (Moderate relatives)<br>
+                            IBD < 0.2: 원거리 혈연 (Distant relatives)
+                            </span>
+                        </div>
+                        
+                        <div style="background: #f3e5f5; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #7b1fa2; font-size: 12px;">🏛️ 유전자원 관리에서의 활용</strong><br>
+                            <div style="color: #7b1fa2; font-size: 11px; margin-top: 5px;">
+                                <strong>• 유전자은행 관리:</strong> 중복 수집 방지, 핵심 컬렉션 구성<br>
+                                <strong>• 계통 인증:</strong> 분양 자료의 유전적 정체성 확인<br>
+                                <strong>• 다양성 평가:</strong> 수집 자료의 유전적 다양성 정량화<br>
+                                <strong>• 육종 효율성:</strong> 유사한 친계 중복 사용 방지
+                            </div>
+                        </div>
+                        
+                        <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #2e7d32; font-size: 11px;">💡 실무 팁:</strong>
+                            <span style="color: #2e7d32; font-size: 10px;">
+                                IBD 분석 시 참조 데이터베이스의 품질이 결과의 신뢰성을 좌우합니다. 
+                                표준 품종, 인증된 계통을 포함한 고품질 참조 세트 구축이 필수적입니다.
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f3e5f5; padding: 15px; border-radius: 4px; margin-top: 15px; border-left: 4px solid #9c27b0;">
+                        <h5 style="color: #6a1b9a; margin-top: 0;">👨‍👩‍👧 인간 유전학에서 Trio 분석</h5>
+                        <p style="color: #6a1b9a; font-size: 13px; margin-bottom: 10px;">
+                            <strong>인간에서는 교배실험이 불가능하므로, 가족 삼조(부모-자녀 trio) 분석이 매우 강력한 도구입니다.</strong>
+                        </p>
+                        
+                        <div style="background: #e1bee7; padding: 12px; border-radius: 4px; margin: 10px 0;">
+                            <strong style="color: #6a1b9a; font-size: 12px;">🧬 Trio 분석의 원리</strong><br>
+                            <div style="color: #6a1b9a; font-size: 10px; margin-top: 8px;">
+                                <strong>기본 구성:</strong> 아버지 + 어머니 + 자녀 (1 trio)<br>
+                                <strong>확장형:</strong> 부모 + 다수 자녀, 조부모 포함 등<br>
+                                <strong>핵심 장점:</strong> 멘델 유전 법칙으로 상속 패턴 추적<br>
+                                <strong>de novo 변이:</strong> 부모에 없는 새로운 변이 탐지
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 10px 0;">
+                            <div style="background: #f3e5f5; padding: 12px; border-radius: 4px;">
+                                <strong style="color: #6a1b9a; font-size: 12px;">✅ Trio 분석의 장점</strong><br>
+                                <ul style="color: #6a1b9a; font-size: 10px; margin: 8px 0; padding-left: 15px;">
+                                    <li><strong>Phase 결정:</strong> 부모 유래 일배체형 구분</li>
+                                    <li><strong>de novo 검출:</strong> 신규 돌연변이 발견</li>
+                                    <li><strong>상속 패턴:</strong> 우성/열성 유전 확인</li>
+                                    <li><strong>재조합 지점:</strong> 정확한 재조합 위치 파악</li>
+                                    <li><strong>QC 향상:</strong> 멘델 오류로 품질 검증</li>
+                                </ul>
+                            </div>
+                            
+                            <div style="background: #ede7f6; padding: 12px; border-radius: 4px;">
+                                <strong style="color: #512da8; font-size: 12px;">🔬 임상 응용</strong><br>
+                                <ul style="color: #512da8; font-size: 10px; margin: 8px 0; padding-left: 15px;">
+                                    <li><strong>유전질환 진단:</strong> 원인 변이 식별</li>
+                                    <li><strong>약물 반응:</strong> 개인 맞춤 치료</li>
+                                    <li><strong>암 연구:</strong> 체세포/생식세포 변이 구분</li>
+                                    <li><strong>발달 지연:</strong> CNV, SNV 종합 분석</li>
+                                    <li><strong>생식 상담:</strong> 재발 위험도 평가</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="code-block" style="margin-top: 10px;">
+                            <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                            <code># 인간 Trio 분석 예시
+# 1. Trio VCF에서 de novo 변이 탐지
+plink2 --vcf family_trio.vcf.gz \
+    --fam trio.fam \
+    --mendel \
+    --mendel-duos \
+    --out trio_mendel
+
+# 2. 상속 패턴 분석
+plink2 --bfile trio_data \
+    --family \
+    --tdt \
+    --out transmission_test
+
+# 3. Phase 정보 활용한 일배체형 분석
+plink2 --bfile trio_data \
+    --family \
+    --hap-window 50 \
+    --out haplotype_blocks</code>
+                        </div>
+                        
+                        <div style="background: #e8eaf6; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #3f51b5; font-size: 12px;">🌍 인간 vs 식물: 접근법 차이</strong><br>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+                                <div>
+                                    <strong style="color: #3f51b5; font-size: 11px;">👥 인간 유전학</strong><br>
+                                    <ul style="color: #3f51b5; font-size: 9px; margin: 5px 0; padding-left: 15px;">
+                                        <li>가족 기반 연구 (trio, quartet)</li>
+                                        <li>자연발생 변이 관찰</li>
+                                        <li>집단 기반 GWAS</li>
+                                        <li>LD 기반 태그 SNP</li>
+                                        <li>대규모 코호트 연구</li>
+                                    </ul>
+                                </div>
+                                <div>
+                                    <strong style="color: #3f51b5; font-size: 11px;">🌱 식물 유전학</strong><br>
+                                    <ul style="color: #3f51b5; font-size: 9px; margin: 5px 0; padding-left: 15px;">
+                                        <li>통제된 교배실험</li>
+                                        <li>분리집단 생산 (F2, RIL)</li>
+                                        <li>QTL 매핑</li>
+                                        <li>근동질계통(NIL) 개발</li>
+                                        <li>형질전환 검증</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #fff3e0; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #e65100; font-size: 12px;">💡 교훈: 생물학적 제약이 방법론 결정</strong><br>
+                            <span style="color: #e65100; font-size: 11px;">
+                                각 생물종의 생식 특성, 세대시간, 윤리적 제약 등이 유전학 연구 방법을 결정합니다. 
+                                인간에서는 trio 분석과 LD가 주요 도구이고, 식물에서는 교배집단이 gold standard입니다.
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #fce4ec; padding: 15px; border-radius: 8px; border-left: 4px solid #e91e63;">
+                    <h4 style="color: #ad1457; margin-top: 0;">🔗 LD (Linkage Disequilibrium)</h4>
+                    <p style="color: #ad1457; font-size: 14px; margin-bottom: 10px;">
+                        서로 다른 위치의 대립유전자들이 함께 유전되는 정도를 나타내는 척도입니다.
+                    </p>
+                    
+                    <div style="background: #f8bbd9; padding: 15px; border-radius: 4px; margin: 10px 0; border-left: 4px solid #c2185b;">
+                        <h5 style="color: #880e4f; margin-top: 0;">🔍 연관 vs 연관불균형: 핵심 차이점</h5>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 10px 0;">
+                            <div style="background: #f3e5f5; padding: 10px; border-radius: 4px;">
+                                <strong style="color: #7b1fa2; font-size: 12px;">📏 연관 (Linkage)</strong><br>
+                                <ul style="color: #7b1fa2; font-size: 10px; margin: 5px 0; padding-left: 15px;">
+                                    <li><strong>물리적 개념:</strong> 염색체상 거리</li>
+                                    <li><strong>측정 단위:</strong> cM (centiMorgan)</li>
+                                    <li><strong>재조합률:</strong> θ (theta)</li>
+                                    <li><strong>불변성:</strong> 집단과 무관</li>
+                                    <li><strong>범위:</strong> 0-50% (최대 50%)</li>
+                                </ul>
+                            </div>
+                            <div style="background: #ede7f6; padding: 10px; border-radius: 4px;">
+                                <strong style="color: #512da8; font-size: 12px;">🧬 연관불균형 (LD)</strong><br>
+                                <ul style="color: #512da8; font-size: 10px; margin: 5px 0; padding-left: 15px;">
+                                    <li><strong>통계적 개념:</strong> 집단에서 관찰된 연관</li>
+                                    <li><strong>측정 단위:</strong> r², D', |D|</li>
+                                    <li><strong>집단 의존:</strong> 집단마다 다름</li>
+                                    <li><strong>가변성:</strong> 시간에 따라 변화</li>
+                                    <li><strong>범위:</strong> 0-1 (r²)</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #e1bee7; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #6a1b9a; font-size: 11px;">💡 핵심 이해:</strong>
+                            <span style="color: #6a1b9a; font-size: 10px;">
+                                연관(Linkage)은 유전자의 물리적 위치에 의해 결정되는 불변의 특성이지만, 
+                                연관불균형(LD)은 특정 집단에서 관찰되는 대립유전자 조합의 빈도로, 
+                                집단 역사, 선택압, 근친교배 등에 의해 영향받습니다.
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f8bbd9; padding: 12px; border-radius: 4px; margin: 10px 0;">
+                        <strong style="color: #880e4f; font-size: 12px;">📊 LD 측정값 상세 설명</strong><br>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 10px 0;">
+                            <div style="background: #fce4ec; padding: 8px; border-radius: 4px;">
+                                <strong style="color: #880e4f; font-size: 10px;">r² (상관계수 제곱)</strong><br>
+                                <span style="font-family: monospace; font-size: 9px; color: #880e4f;">
+                                r² = 1.0: 완전 예측 가능<br>
+                                r² = 0.8: 강한 연관<br>
+                                r² = 0.5: 중간 연관<br>
+                                r² = 0.2: 약한 연관<br>
+                                r² = 0.0: 독립적
+                                </span>
+                            </div>
+                            <div style="background: #fce4ec; padding: 8px; border-radius: 4px;">
+                                <strong style="color: #880e4f; font-size: 10px;">D' (표준화된 D)</strong><br>
+                                <span style="font-family: monospace; font-size: 9px; color: #880e4f;">
+                                D' = 1.0: 완전 LD<br>
+                                D' = 0.8: 강한 LD<br>
+                                D' = 0.5: 중간 LD<br>
+                                D' = 0.2: 약한 LD<br>
+                                D' = 0.0: 평형 상태
+                                </span>
+                            </div>
+                            <div style="background: #fce4ec; padding: 8px; border-radius: 4px;">
+                                <strong style="color: #880e4f; font-size: 10px;">|D| (절댓값 D)</strong><br>
+                                <span style="font-family: monospace; font-size: 9px; color: #880e4f;">
+                                • 대립유전자 빈도 의존<br>
+                                • 이론적 최대값 계산<br>
+                                • D = pAB - pA × pB<br>
+                                • 음수/양수 가능
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #f3e5f5; padding: 12px; border-radius: 4px; margin: 10px 0;">
+                        <strong style="color: #7b1fa2; font-size: 12px;">🧪 LD 계산 예시</strong><br>
+                        <div style="font-family: monospace; font-size: 10px; color: #7b1fa2; margin-top: 8px;">
+                            <strong>두 SNP (A/a, B/b) 간 LD 계산:</strong><br>
+                            관찰된 일배체형 빈도:<br>
+                            AB = 0.5, Ab = 0.1, aB = 0.1, ab = 0.3<br><br>
+                            
+                            대립유전자 빈도:<br>
+                            p(A) = 0.6, p(a) = 0.4<br>
+                            p(B) = 0.6, p(b) = 0.4<br><br>
+                            
+                            LD 계산:<br>
+                            D = p(AB) - p(A)×p(B) = 0.5 - 0.6×0.6 = 0.14<br>
+                            r² = D² / [p(A)×p(a)×p(B)×p(b)] = 0.14² / [0.6×0.4×0.6×0.4] = 0.34
+                        </div>
+                    </div>
+                    
+                    <ul style="color: #ad1457; font-size: 13px;">
+                        <li><strong>거리 의존성:</strong> 가까운 SNP일수록 높은 LD</li>
+                        <li><strong>집단 차이:</strong> 집단별 LD 패턴 상이</li>
+                        <li><strong>GWAS 활용:</strong> 태그 SNP 선정, 인과 변이 추론</li>
+                        <li><strong>진화 분석:</strong> 재조합률, 선택압 추정</li>
+                    </ul>
+                    
+                    <div style="background: #e8f4fd; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                        <strong style="color: #1565c0; font-size: 12px;">🌱 식물 육종에서 LD의 중요성</strong><br>
+                        <div style="color: #1565c0; font-size: 11px; margin-top: 5px;">
+                            <strong>• 마커 지원 선발 (MAS):</strong> 목표 유전자와 연관된 마커 선정<br>
+                            <strong>• 게놈 선발 (GS):</strong> LD 블록 기반 예측 모델 구축<br>
+                            <strong>• 품종 개발:</strong> 유용 유전자 조합의 안정적 유전 확인<br>
+                            <strong>• 집단 구조:</strong> 육종 집단의 유전적 구조 파악<br>
+                            <strong>• QTL 매핑:</strong> 연관 분석의 해상도 결정
+                        </div>
+                    </div>
+                    
+                    <div style="background: #ffe6e6; padding: 15px; border-radius: 4px; margin-top: 15px; border-left: 4px solid #dc3545;">
+                        <h5 style="color: #721c24; margin-top: 0;">⚠️ 육종 집단에서 LD 적용의 한계</h5>
+                        <p style="color: #721c24; font-size: 13px; margin-bottom: 10px;">
+                            <strong>LD는 자연집단 분석에는 유용하지만, 육종집단에서는 심각한 한계가 있습니다!</strong>
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 10px 0;">
+                            <div style="background: #f8d7da; padding: 12px; border-radius: 4px;">
+                                <strong style="color: #721c24; font-size: 12px;">🏘️ 자연집단 vs 육종집단</strong><br>
+                                <div style="color: #721c24; font-size: 10px; margin-top: 8px;">
+                                    <strong>자연집단:</strong><br>
+                                    • 무작위 교배 수천 세대<br>
+                                    • 안정된 LD 패턴<br>
+                                    • 대규모 집단 크기<br>
+                                    • 평형 상태 도달<br><br>
+                                    
+                                    <strong>육종집단:</strong><br>
+                                    • 의도적 선택교배<br>
+                                    • 인위적 LD 패턴<br>
+                                    • 소규모 집단 크기<br>
+                                    • 지속적 구조 변화
+                                </div>
+                            </div>
+                            
+                            <div style="background: #f8d7da; padding: 12px; border-radius: 4px;">
+                                <strong style="color: #721c24; font-size: 12px;">❌ 육종집단에서 LD 문제점</strong><br>
+                                <ul style="color: #721c24; font-size: 10px; margin: 8px 0; padding-left: 15px;">
+                                    <li><strong>가계 구조 혼재:</strong> 패밀리별 서로 다른 LD</li>
+                                    <li><strong>근친교배:</strong> 인위적 LD 증가</li>
+                                    <li><strong>선발압:</strong> 특정 조합만 보존</li>
+                                    <li><strong>소규모 집단:</strong> 유전적 드리프트</li>
+                                    <li><strong>세대 효과:</strong> 빠른 LD 변화</li>
+                                    <li><strong>집단 층화:</strong> 가짜 연관 발생</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #f5c6cb; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #721c24; font-size: 12px;">🧪 실제 문제 시나리오</strong><br>
+                            <div style="font-family: monospace; font-size: 10px; color: #721c24; margin-top: 8px;">
+                                <strong>시나리오: 벼 육종 프로그램</strong><br>
+                                Elite × Wild 교배 → F2 집단 (200개체)<br><br>
+                                
+                                <strong>LD 분석 결과 (가짜):</strong><br>
+                                마커 A와 수량 QTL: r² = 0.8 (매우 강한 연관)<br><br>
+                                
+                                <strong>실제 상황:</strong><br>
+                                • Elite 개체들: 마커 A(+), 고수량 QTL(+)<br>
+                                • Wild 개체들: 마커 A(-), 저수량 QTL(-)<br>
+                                • F2에서는 분리되어 연관 없음!<br><br>
+                                
+                                <strong>육종가의 실수:</strong><br>
+                                마커 A 선발 → 다음 세대에서 예측 실패
+                            </div>
+                        </div>
+                        
+                        <div style="background: #d1ecf1; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #0c5460; font-size: 12px;">✅ 육종집단에서 올바른 접근법</strong><br>
+                            <div style="color: #0c5460; font-size: 11px; margin-top: 5px;">
+                                <strong>1. 가계 기반 분석:</strong> 개별 패밀리 내에서 연관 분석<br>
+                                <strong>2. QTL 매핑:</strong> 재조합률 기반 유전적 거리 사용<br>
+                                <strong>3. 다세대 검증:</strong> 여러 세대에서 마커 효과 확인<br>
+                                <strong>4. 집단 구조 보정:</strong> PC 분석으로 가계 효과 제거<br>
+                                <strong>5. 직접 검정:</strong> 표현형과 유전자형 직접 비교
+                            </div>
+                        </div>
+                        
+                        <div style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-top: 10px; border-left: 4px solid #ffc107;">
+                            <strong style="color: #856404; font-size: 12px;">💡 육종가를 위한 실무 가이드</strong><br>
+                            <div style="color: #856404; font-size: 11px; margin-top: 5px;">
+                                <strong>• LD는 참고용으로만:</strong> 마커 개발의 초기 단계에서만 활용<br>
+                                <strong>• 가계별 검증 필수:</strong> 각 교배조합에서 개별적으로 마커 효과 확인<br>
+                                <strong>• 다환경 검정:</strong> 여러 환경에서 마커와 형질의 관계 재확인<br>
+                                <strong>• 독립 집단 검증:</strong> 다른 육종 프로그램에서 마커 효과 검증<br>
+                                <strong>• 기능 분석:</strong> 가능하면 인과적 변이의 생물학적 기능 확인
+                            </div>
+                        </div>
+                        
+                        <div style="background: #e8f5e8; padding: 15px; border-radius: 4px; margin-top: 15px; border-left: 4px solid #28a745;">
+                            <h5 style="color: #155724; margin-top: 0;">🎯 사실: 육종집단은 매핑의 최고 도구!</h5>
+                            <p style="color: #155724; font-size: 13px; margin-bottom: 10px;">
+                                <strong>육종집단(교배집단)은 오히려 QTL 매핑에 가장 강력한 도구입니다. LD는 교배가 어려운 종에서 차선책으로 사용됩니다.</strong>
+                            </p>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 10px 0;">
+                                <div style="background: #d4edda; padding: 12px; border-radius: 4px;">
+                                    <strong style="color: #155724; font-size: 12px;">✅ 육종집단(교배집단)의 장점</strong><br>
+                                    <ul style="color: #155724; font-size: 10px; margin: 8px 0; padding-left: 15px;">
+                                        <li><strong>통제된 교배:</strong> 알려진 부모, 정확한 계보</li>
+                                        <li><strong>분리 세대:</strong> F2, RIL에서 명확한 재조합</li>
+                                        <li><strong>높은 매핑 정확도:</strong> 진짜 연관만 탐지</li>
+                                        <li><strong>반복 가능:</strong> 동일 교배 반복 수행</li>
+                                        <li><strong>고해상도:</strong> 근동질계통으로 fine mapping</li>
+                                        <li><strong>기능 검증:</strong> NIL로 직접 효과 확인</li>
+                                    </ul>
+                                </div>
+                                
+                                <div style="background: #d1ecf1; padding: 12px; border-radius: 4px;">
+                                    <strong style="color: #0c5460; font-size: 12px;">📚 LD는 차선책</strong><br>
+                                    <div style="color: #0c5460; font-size: 10px; margin-top: 8px;">
+                                        <strong>LD 사용하는 경우:</strong><br>
+                                        • 교배 어려운 종 (나무, 다년생)<br>
+                                        • 긴 세대시간 (10-20년)<br>
+                                        • 복잡한 번식체계<br>
+                                        • 자연집단만 이용 가능<br><br>
+                                        
+                                        <strong>예시:</strong><br>
+                                        • 포플러, 유칼립투스 (임목)<br>
+                                        • 포도, 사과 (과수)<br>
+                                        • 야생화, 관상식물<br>
+                                        • 멸종위기 종
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="background: #c8e6c9; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <strong style="color: #155724; font-size: 12px;">🌾 농작물별 매핑 전략</strong><br>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 8px;">
+                                    <div style="text-align: center; background: #e8f5e8; padding: 8px; border-radius: 4px;">
+                                        <strong style="color: #2e7d32; font-size: 10px;">일년생 작물</strong><br>
+                                        <span style="font-size: 9px; color: #2e7d32;">벼, 밀, 옥수수</span><br>
+                                        <span style="font-size: 9px; color: #2e7d32; font-weight: bold;">→ 교배집단 우선</span>
+                                    </div>
+                                    <div style="text-align: center; background: #fff3e0; padding: 8px; border-radius: 4px;">
+                                        <strong style="color: #e65100; font-size: 10px;">다년생 작물</strong><br>
+                                        <span style="font-size: 9px; color: #e65100;">사과, 포도, 차</span><br>
+                                        <span style="font-size: 9px; color: #e65100; font-weight: bold;">→ LD + 가계분석</span>
+                                    </div>
+                                    <div style="text-align: center; background: #f3e5f5; padding: 8px; border-radius: 4px;">
+                                        <strong style="color: #7b1fa2; font-size: 10px;">임목/야생종</strong><br>
+                                        <span style="font-size: 9px; color: #7b1fa2;">포플러, 소나무</span><br>
+                                        <span style="font-size: 9px; color: #7b1fa2; font-weight: bold;">→ LD 기반 GWAS</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="background: #f0f8ff; padding: 12px; border-radius: 4px; margin-top: 10px;">
+                                <strong style="color: #1565c0; font-size: 12px;">🔬 결론: 연구 전략 선택</strong><br>
+                                <div style="color: #1565c0; font-size: 11px; margin-top: 5px;">
+                                    <strong>1순위:</strong> 교배집단 (F2, RIL, DH) - 가장 정확하고 신뢰성 높음<br>
+                                    <strong>2순위:</strong> 가계 분석 (반형매, 전형매) - 부분적 통제<br>
+                                    <strong>3순위:</strong> LD 기반 GWAS - 교배 불가능할 때 차선책<br><br>
+                                    
+                                    <span style="font-style: italic;">
+                                    "육종집단을 만들 수 있다면 그것이 최고의 매핑 도구입니다!"
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #2196f3;">
+                <h4 style="color: #1565c0; margin-top: 0;">🔬 실제 연구에서의 활용</h4>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 10px;">
+                    <div style="text-align: center; background: #f3e5f5; padding: 10px; border-radius: 4px;">
+                        <strong style="color: #7b1fa2;">유전적 다양성</strong><br>
+                        <span style="font-size: 12px; color: #7b1fa2;">대립유전자 빈도로<br>집단 다양성 평가</span>
+                    </div>
+                    <div style="text-align: center; background: #e0f2f1; padding: 10px; border-radius: 4px;">
+                        <strong style="color: #00695c;">품질 관리</strong><br>
+                        <span style="font-size: 12px; color: #00695c;">HWE로 시퀀싱<br>오류 탐지</span>
+                    </div>
+                    <div style="text-align: center; background: #fff3e0; padding: 10px; border-radius: 4px;">
+                        <strong style="color: #ef6c00;">혈연 관계</strong><br>
+                        <span style="font-size: 12px; color: #ef6c00;">IBD로 계통<br>분석</span>
+                    </div>
+                    <div style="text-align: center; background: #fce4ec; padding: 10px; border-radius: 4px;">
+                        <strong style="color: #ad1457;">연관 분석</strong><br>
+                        <span style="font-size: 12px; color: #ad1457;">LD로 태그 SNP<br>선정</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 6 / 7</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide05.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide07.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    function copyCode(button) {
+        const codeBlock = button.nextElementSibling;
+        const codeText = codeBlock.textContent.trim();
+        
+        navigator.clipboard.writeText(codeText).then(function() {
+            button.textContent = '복사됨!';
+            button.classList.add('copied');
+            setTimeout(function() {
+                button.textContent = '복사';
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(function() {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                button.textContent = '복사됨!';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.textContent = '복사';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

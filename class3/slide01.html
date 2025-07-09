@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생물종별 특성 & 실무 - 분석 차이점</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { 
+            background: #1e1e1e; 
+            border: 1px solid #333; 
+            padding: 20px; 
+            border-radius: 8px; 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            margin: 15px 0; 
+            color: #00ff00;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .code-block code { 
+            white-space: pre-wrap; 
+            color: #00ff00;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+            background: #555;
+        }
+        .copy-btn.copied {
+            background: #00ff00;
+            color: #000;
+        }
+        .env-section {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+        .tool-card { 
+            background: #ffffff; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05); 
+            margin: 15px; 
+            padding: 25px; 
+            width: 48%; 
+            min-width: 400px; 
+            box-sizing: border-box; 
+            transition: transform 0.2s; 
+        }
+        .tool-card:hover { 
+            transform: translateY(-5px); 
+        }
+        .tool-card h3 { 
+            color: #3498db; 
+            font-size: 22px; 
+            margin-top: 0; 
+            border-bottom: 2px solid #3498db; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px; 
+        }
+        .tool-card ul { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0; 
+        }
+        .tool-card li { 
+            margin-bottom: 10px; 
+            padding-left: 25px; 
+            position: relative; 
+        }
+        .tool-card li::before { 
+            content: '•'; 
+            color: #27ae60; 
+            font-weight: bold; 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+        }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">생물종별 특성 & 실무: 분석 차이점</div>
+    <div class="slide-content">
+        <h2>🌱 생물종별 게놈 특성과 분석 전략</h2>
+        <p>WGS 분석은 생물종의 게놈 특성에 따라 접근 방식과 고려 사항이 달라집니다. 특히 게놈 크기, 배수성, 반복 서열의 유무 및 비율은 분석 파이프라인 설계에 큰 영향을 미칩니다.</p>
+
+        <h3>🔬 주요 생물종별 특성 비교</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>특성</th>
+                    <th>동물/인간</th>
+                    <th>식물 (예: 애기장대/벼)</th>
+                    <th>미생물 (세균/바이러스)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>게놈 크기</strong></td>
+                    <td>중간 ~ 큼 (수백 Mb ~ 수 Gb)</td>
+                    <td>매우 다양 (수십 Mb ~ 수백 Gb)</td>
+                    <td>작음 (수 Kb ~ 수십 Mb)</td>
+                </tr>
+                <tr>
+                    <td><strong>배수성 (Ploidy)</strong></td>
+                    <td>주로 2배체 (Diploid)</td>
+                    <td>다양 (2배체, 4배체, 6배체 등)</td>
+                    <td>주로 1배체 (Haploid)</td>
+                </tr>
+                <tr>
+                    <td><strong>반복 서열</strong></td>
+                    <td>높음 (인간 게놈의 ~50%)</td>
+                    <td>매우 높음 (게놈의 80% 이상인 경우도)</td>
+                    <td>낮음</td>
+                </tr>
+                <tr>
+                    <td><strong>유전자 밀도</strong></td>
+                    <td>낮음 (게놈 크기 대비)</td>
+                    <td>낮음 (게놈 크기 대비)</td>
+                    <td>높음 (게놈 크기 대비)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>🎯 생물종별 최적화된 분석 전략</h3>
+        <div class="comparison-table">
+            <div class="comparison-item" style="border-left-color: #2196f3;">
+                <h4><i class="fas fa-user"></i> 동물/인간 게놈</h4>
+                <ul>
+                    <li><strong>정렬:</strong> BWA-MEM (높은 정확도)</li>
+                    <li><strong>변이 검출:</strong> GATK HaplotypeCaller (산업 표준)</li>
+                    <li><strong>고려사항:</strong> 질병 관련 변이, 인구 집단 유전학</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #4caf50;">
+                <h4><i class="fas fa-leaf"></i> 식물 게놈</h4>
+                <ul>
+                    <li><strong>정렬:</strong> BWA-MEM, HISAT2 (대용량 게놈, 반복 서열)</li>
+                    <li><strong>변이 검출:</strong> GATK, FreeBayes (다배체, 복잡한 변이)</li>
+                    <li><strong>고려사항:</strong> 다배체성, 대규모 반복 서열, 게놈 어셈블리 필요성</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #e74c3c;">
+                <h4><i class="fas fa-bacteria"></i> 미생물 게놈</h4>
+                <ul>
+                    <li><strong>정렬:</strong> BWA-MEM, Bowtie2 (작은 게놈, 빠른 속도)</li>
+                    <li><strong>변이 검출:</strong> FreeBayes, VarScan (낮은 커버리지, 균일성)</li>
+                    <li><strong>고려사항:</strong> 균주 동정, 항생제 내성 유전자, 전염병 역학</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>🌿 식물 게놈 사례 연구</h2>
+        <p>실제 식물 게놈 데이터를 통해 생물종별 분석 전략의 차이를 살펴보겠습니다.</p>
+
+        <h3>📊 주요 식물 게놈 특성 비교</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>특성</th>
+                    <th>애기장대 (Arabidopsis)</th>
+                    <th>벼 (Rice)</th>
+                    <th>콩 (Soybean)</th>
+                    <th>밀 (Wheat)</th>
+                    <th>옥수수 (Maize)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>게놈 크기</strong></td>
+                    <td>~135 Mb</td>
+                    <td>~389 Mb</td>
+                    <td>~1.15 Gb</td>
+                    <td>~17 Gb</td>
+                    <td>~2.3 Gb</td>
+                </tr>
+                <tr>
+                    <td><strong>염색체 수</strong></td>
+                    <td>5개</td>
+                    <td>12개</td>
+                    <td>20개</td>
+                    <td>21개 (7×3)</td>
+                    <td>10개</td>
+                </tr>
+                <tr>
+                    <td><strong>배수성</strong></td>
+                    <td>2배체</td>
+                    <td>2배체</td>
+                    <td>4배체 (복합 2배체)</td>
+                    <td>6배체 (헥사플로이드)</td>
+                    <td>2배체</td>
+                </tr>
+                <tr>
+                    <td><strong>유전자 수</strong></td>
+                    <td>~27,000개</td>
+                    <td>~40,000개</td>
+                    <td>~50,000개</td>
+                    <td>~107,000개</td>
+                    <td>~39,000개</td>
+                </tr>
+                <tr>
+                    <td><strong>반복 서열 비율</strong></td>
+                    <td>~10%</td>
+                    <td>~35%</td>
+                    <td>~50%</td>
+                    <td>~80%</td>
+                    <td>~85%</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>🔬 종별 분석 전략 및 고려사항</h3>
+        <div style="display: flex; justify-content: space-around; margin-top: 40px; flex-wrap: wrap;">
+            <div class="tool-card" style="border-left: 4px solid #2196f3;">
+                <h3><i class="fas fa-seedling"></i> 애기장대 (Arabidopsis thaliana)</h3>
+                <ul>
+                    <li><strong>장점:</strong> 작은 게놈 크기, 낮은 반복 서열 비율</li>
+                    <li><strong>분석 전략:</strong> 빠른 도구로 충분 (GATK 과도)</li>
+                    <li><strong>1순위 도구:</strong> FreeBayes 또는 bcftools</li>
+                    <li><strong>2순위 도구:</strong> GATK4 (고품질 필요시)</li>
+                    <li><strong>주의사항:</strong> 높은 AT 함량 (64%)</li>
+                    <li><strong>커버리지:</strong> 20-30X 권장</li>
+                </ul>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #4caf50;">
+                <h3><i class="fas fa-leaf"></i> 벼 (Oryza sativa)</h3>
+                <ul>
+                    <li><strong>장점:</strong> 잘 어셈블된 참조 게놈, 풍부한 주석</li>
+                    <li><strong>분석 전략:</strong> 목적에 따른 도구 선택</li>
+                    <li><strong>1순위 도구:</strong> FreeBayes (일반), GATK4 (고품질)</li>
+                    <li><strong>2순위 도구:</strong> STRELKA2 (빠른 정확도)</li>
+                    <li><strong>주의사항:</strong> 중간 수준의 반복 서열 (35%)</li>
+                    <li><strong>커버리지:</strong> 30-40X 권장</li>
+                </ul>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #ff9800;">
+                <h3><i class="fas fa-tree"></i> 콩 (Glycine max)</h3>
+                <ul>
+                    <li><strong>복잡성:</strong> 4배체 기원, 높은 반복 서열 비율</li>
+                    <li><strong>분석 전략:</strong> 다배체 지원 도구 필수</li>
+                    <li><strong>1순위 도구:</strong> GATK4 (ploidy=4)</li>
+                    <li><strong>2순위 도구:</strong> FreeBayes (다배체 모드)</li>
+                    <li><strong>주의사항:</strong> 높은 반복 서열 (50%), 중복 유전자</li>
+                    <li><strong>커버리지:</strong> 40-50X 권장</li>
+                </ul>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #8e44ad;">
+                <h3><i class="fas fa-wheat-alt"></i> 밀 (Triticum aestivum)</h3>
+                <ul>
+                    <li><strong>극복잡성:</strong> 6배체 (A, B, D 게놈), 매우 큰 게놈 크기</li>
+                    <li><strong>분석 전략:</strong> GATK 필수 (다른 도구로 한계)</li>
+                    <li><strong>1순위 도구:</strong> GATK4 (ploidy=6)</li>
+                    <li><strong>2순위 도구:</strong> 밀 전용 도구 (TriMap 등)</li>
+                    <li><strong>주의사항:</strong> 매우 높은 반복 서열 (80%), 동상 유전자</li>
+                    <li><strong>커버리지:</strong> 60-80X 권장</li>
+                </ul>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #e67e22;">
+                <h3><i class="fas fa-corn"></i> 옥수수 (Zea mays)</h3>
+                <ul>
+                    <li><strong>복잡성:</strong> 큰 게놈, 매우 높은 반복 서열 비율</li>
+                    <li><strong>분석 전략:</strong> FreeBayes 우선 (반복서열 처리 우수)</li>
+                    <li><strong>1순위 도구:</strong> FreeBayes</li>
+                    <li><strong>2순위 도구:</strong> GATK4 + 구조변이 도구</li>
+                    <li><strong>주의사항:</strong> 극도로 높은 반복 서열 (85%), 복잡한 구조 변이</li>
+                    <li><strong>커버리지:</strong> 50-60X 권장</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>💡 실무 팁</h3>
+        <div class="code-block">
+            <button class="copy-btn" onclick="copyCode(this)">복사</button>
+            <code># 종별 GATK 파라미터 예시
+
+## 애기장대 (2배체, 단순한 게놈)
+gatk HaplotypeCaller \
+    --sample-ploidy 2 \
+    --min-base-quality-score 20 \
+    --standard-min-confidence-threshold-for-calling 30
+
+## 벼 (2배체, 중간 복잡도)
+gatk HaplotypeCaller \
+    --sample-ploidy 2 \
+    --min-base-quality-score 25 \
+    --standard-min-confidence-threshold-for-calling 50
+
+## 콩 (4배체, 복잡한 게놈)
+gatk HaplotypeCaller \
+    --sample-ploidy 4 \
+    --min-base-quality-score 30 \
+    --standard-min-confidence-threshold-for-calling 100
+
+## 밀 (6배체, 극복잡한 게놈)
+gatk HaplotypeCaller \
+    --sample-ploidy 6 \
+    --min-base-quality-score 35 \
+    --standard-min-confidence-threshold-for-calling 200 \
+    --max-reads-per-alignment-start 200 \
+    --native-pair-hmm-threads 4
+
+## 옥수수 (2배체, 높은 반복 서열)
+gatk HaplotypeCaller \
+    --sample-ploidy 2 \
+    --min-base-quality-score 30 \
+    --standard-min-confidence-threshold-for-calling 100 \
+    --max-reads-per-alignment-start 100 \
+    --kmer-size 25</code>
+        </div>
+
+        <h2>🌾 복잡한 작물 게놈의 특별한 도전과제</h2>
+        <p>밀과 옥수수 같은 주요 작물은 극도로 복잡한 게놈 구조로 인해 특별한 분석 전략이 필요합니다.</p>
+
+        <div style="display: flex; justify-content: space-around; margin-top: 40px; flex-wrap: wrap;">
+            <div class="tool-card" style="border-left: 4px solid #8e44ad;">
+                <h3><i class="fas fa-wheat-alt"></i> 밀 게놈 분석의 복잡성</h3>
+                <ul>
+                    <li><strong>헥사플로이드 구조:</strong> A, B, D 3개 하위 게놈으로 구성</li>
+                    <li><strong>동상 유전자:</strong> 각 유전자당 최대 3개 복사본 존재</li>
+                    <li><strong>분석 도전:</strong> 하위 게놈 간 구별, 높은 메모리 요구량</li>
+                    <li><strong>특별 고려사항:</strong> 하위 게놈별 변이 패턴 차이</li>
+                </ul>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 3px solid #8e44ad;">
+                    <h4 style="color: #2c3e50; margin-top: 0; font-size: 16px;">🔬 밀 게놈 분석 팁</h4>
+                    <ul style="font-size: 13px; line-height: 1.5; margin: 10px 0; padding-left: 20px;">
+                        <li>하위 게놈별 참조 서열 활용</li>
+                        <li>높은 confidence threshold 적용</li>
+                        <li>충분한 컴퓨팅 자원 확보 필요</li>
+                        <li>전문 밀 게놈 분석 도구 고려</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #e67e22;">
+                <h3><i class="fas fa-corn"></i> 옥수수 게놈 분석의 복잡성</h3>
+                <ul>
+                    <li><strong>반복 서열 풍부:</strong> 게놈의 85%가 반복 서열</li>
+                    <li><strong>구조 변이:</strong> 큰 삽입/결실, 역위 등 빈번</li>
+                    <li><strong>분석 도전:</strong> 반복 서열 정렬 어려움, 가짜 변이 증가</li>
+                    <li><strong>특별 고려사항:</strong> 장거리 시퀀싱 기술 활용 권장</li>
+                </ul>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 15px; border-left: 3px solid #e67e22;">
+                    <h4 style="color: #2c3e50; margin-top: 0; font-size: 16px;">🔬 옥수수 게놈 분석 팁</h4>
+                    <ul style="font-size: 13px; line-height: 1.5; margin: 10px 0; padding-left: 20px;">
+                        <li>반복 서열 마스킹 전처리</li>
+                        <li>PacBio/Nanopore 장거리 시퀀싱 활용</li>
+                        <li>구조 변이 전용 도구 병행 사용</li>
+                        <li>높은 커버리지 확보 필요</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #e8f4f8; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
+            <h4 style="color: #2c3e50; margin-top: 0;">📈 게놈 복잡도에 따른 분석 전략</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                <div>
+                    <h5 style="color: #2c3e50; margin-top: 0;">단순 → 복잡 순서</h5>
+                    <ol style="font-size: 14px; margin: 10px 0; padding-left: 20px;">
+                        <li>애기장대 (모델 식물)</li>
+                        <li>벼 (중간 복잡도)</li>
+                        <li>콩 (4배체)</li>
+                        <li>옥수수 (높은 반복 서열)</li>
+                        <li>밀 (6배체, 극복잡)</li>
+                    </ol>
+                </div>
+                <div>
+                    <h5 style="color: #2c3e50; margin-top: 0;">복잡도별 권장 전략</h5>
+                    <ul style="font-size: 14px; margin: 10px 0; padding-left: 20px;">
+                        <li><strong>단순:</strong> 표준 파이프라인</li>
+                        <li><strong>중간:</strong> 파라미터 조정</li>
+                        <li><strong>복잡:</strong> 전문 도구 필요</li>
+                        <li><strong>극복잡:</strong> 맞춤형 분석 필수</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h2>🔄 GATK vs 대안 도구: 식물 게놈에서의 선택</h2>
+        <p>GATK가 항상 최선의 선택은 아닙니다. 식물 게놈의 특성과 연구 목적에 따라 더 적합한 도구들이 있습니다.</p>
+
+        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="color: #856404; margin-top: 0;">❓ GATK가 꼭 필요한 경우 vs 대안이 나은 경우</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-top: 15px;">
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #2d5a2d; margin-top: 0;">✅ GATK 사용 권장</h5>
+                    <ul style="color: #2d5a2d; font-size: 14px; margin: 10px 0;">
+                        <li><strong>다배체 식물</strong> (밀, 콩, 딸기 등)</li>
+                        <li><strong>인간 질병 모델</strong> 연구</li>
+                        <li><strong>고품질 변이 검출</strong>이 필수</li>
+                        <li><strong>표준화된 분석</strong> 파이프라인 필요</li>
+                        <li><strong>GVCF 형식</strong> 활용 필요</li>
+                    </ul>
+                </div>
+                <div style="background: #f0f8ff; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #1e3a8a; margin-top: 0;">🚀 대안 도구 고려</h5>
+                    <ul style="color: #1e3a8a; font-size: 14px; margin: 10px 0;">
+                        <li><strong>단순 2배체</strong> (애기장대, 벼)</li>
+                        <li><strong>빠른 스크리닝</strong>이 목적</li>
+                        <li><strong>집단 유전학</strong> 연구</li>
+                        <li><strong>제한된 컴퓨팅 자원</strong></li>
+                        <li><strong>특수 변이 타입</strong> 검출</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h3>🛠️ 식물 게놈 분석을 위한 대안 도구들</h3>
+        <div style="display: flex; justify-content: space-around; margin-top: 40px; flex-wrap: wrap;">
+            <div class="tool-card" style="border-left: 4px solid #16a085;">
+                <h3><i class="fas fa-rocket"></i> FreeBayes</h3>
+                <ul>
+                    <li><strong>장점:</strong> 빠른 속도, 간단한 설치, 다배체 지원</li>
+                    <li><strong>적합한 경우:</strong> 집단 유전학, 빠른 분석</li>
+                    <li><strong>식물 특화:</strong> 복잡한 집단 구조 분석</li>
+                    <li><strong>단점:</strong> GATK 대비 낮은 정확도</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 소프트웨어 정보</h5>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>GitHub:</strong> <a href="https://github.com/freebayes/freebayes" target="_blank">github.com/freebayes/freebayes</a></p>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>Citation:</strong> Garrison & Marth (2012). arXiv:1207.3907</p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># FreeBayes 식물 게놈 분석
+freebayes -f reference.fasta \
+    --ploidy 2 \
+    --use-best-n-alleles 4 \
+    --min-base-quality 20 \
+    input.bam > variants.vcf</code>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #e67e22;">
+                <h3><i class="fas fa-dna"></i> bcftools mpileup</h3>
+                <ul>
+                    <li><strong>장점:</strong> 매우 빠름, 메모리 효율적</li>
+                    <li><strong>적합한 경우:</strong> 대규모 집단, 제한된 자원</li>
+                    <li><strong>식물 특화:</strong> 간단한 SNP 검출</li>
+                    <li><strong>단점:</strong> 복잡한 변이 검출 제한적</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 소프트웨어 정보</h5>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>Website:</strong> <a href="https://www.htslib.org" target="_blank">www.htslib.org</a></p>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>GitHub:</strong> <a href="https://github.com/samtools/bcftools" target="_blank">github.com/samtools/bcftools</a></p>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>Citation:</strong> Danecek et al. (2021). GigaScience 10:giab008</p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># bcftools 식물 게놈 분석
+bcftools mpileup -f reference.fasta input.bam | \
+bcftools call -mv -Oz -o variants.vcf.gz
+bcftools index variants.vcf.gz</code>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #8e44ad;">
+                <h3><i class="fas fa-chart-line"></i> STRELKA2</h3>
+                <ul>
+                    <li><strong>장점:</strong> 빠르고 정확한 SNP/INDEL 검출</li>
+                    <li><strong>적합한 경우:</strong> 고품질 변이 검출</li>
+                    <li><strong>식물 특화:</strong> 체세포 변이 검출</li>
+                    <li><strong>단점:</strong> 다배체 지원 제한적</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 소프트웨어 정보</h5>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>GitHub:</strong> <a href="https://github.com/Illumina/strelka" target="_blank">github.com/Illumina/strelka</a></p>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>Citation:</strong> Kim et al. (2018). Nature Methods 15:591-594</p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># STRELKA2 식물 게놈 분석
+configureStrelkaGermlineWorkflow.py \
+    --bam input.bam \
+    --referenceFasta reference.fasta \
+    --runDir strelka_analysis
+strelka_analysis/runWorkflow.py -m local -j 8</code>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #27ae60;">
+                <h3><i class="fas fa-seedling"></i> 식물 전용 도구들</h3>
+                <ul>
+                    <li><strong>POLYPLOID 도구:</strong> 다배체 전용 (nQuire, ploidyNGS)</li>
+                    <li><strong>PopGenome:</strong> 집단 유전학 특화</li>
+                    <li><strong>TASSEL:</strong> 식물 육종 및 GWAS</li>
+                    <li><strong>VCF-kit:</strong> 식물 VCF 후처리</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 소프트웨어 정보</h5>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>nQuire GitHub:</strong> <a href="https://github.com/clwgg/nQuire" target="_blank">github.com/clwgg/nQuire</a></p>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>TASSEL Website:</strong> <a href="https://www.maizegenetics.net/tassel" target="_blank">maizegenetics.net/tassel</a></p>
+                    <p style="margin: 5px 0; font-size: 12px;"><strong>Citations:</strong></p>
+                    <p style="margin: 3px 0; font-size: 11px;">• nQuire: Weiß et al. (2018). BMC Bioinformatics 19:122</p>
+                    <p style="margin: 3px 0; font-size: 11px;">• TASSEL: Bradbury et al. (2007). Bioinformatics 23:2633-2635</p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 배수성 추정 (nQuire)
+nQuire create -b input.bam
+nQuire lrdmodel -t 8 input.bin
+nQuire histotest input.bin
+
+# TASSEL로 GWAS 분석
+run_pipeline.pl -Xmx10g -fork1 -vcf variants.vcf \
+    -fork2 -t phenotype.txt \
+    -combine3 -input1 -input2 -intersect \
+    -glm -export results</code>
+                </div>
+            </div>
+        </div>
+
+        <h3>🎯 식물별 권장 도구 선택 가이드</h3>
+        <table class="table" style="font-size: 14px;">
+            <thead>
+                <tr>
+                    <th>식물 종류</th>
+                    <th>1순위 도구</th>
+                    <th>2순위 도구</th>
+                    <th>특별 고려사항</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>애기장대</strong></td>
+                    <td>FreeBayes</td>
+                    <td>bcftools</td>
+                    <td>빠른 분석으로 충분</td>
+                </tr>
+                <tr>
+                    <td><strong>벼</strong></td>
+                    <td>GATK4 or FreeBayes</td>
+                    <td>STRELKA2</td>
+                    <td>연구 목적에 따라 선택</td>
+                </tr>
+                <tr>
+                    <td><strong>콩 (4배체)</strong></td>
+                    <td>GATK4 (ploidy=4)</td>
+                    <td>FreeBayes</td>
+                    <td>다배체 지원 필수</td>
+                </tr>
+                <tr>
+                    <td><strong>밀 (6배체)</strong></td>
+                    <td>GATK4 (ploidy=6)</td>
+                    <td>전용 도구</td>
+                    <td>하위게놈 구분 필요</td>
+                </tr>
+                <tr>
+                    <td><strong>옥수수</strong></td>
+                    <td>FreeBayes</td>
+                    <td>GATK4</td>
+                    <td>구조변이 도구 병행</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="background: #e8f4f8; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
+            <h4 style="color: #2c3e50; margin-top: 0;">💡 도구 선택 실무 가이드</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                <div>
+                    <h5 style="color: #2c3e50; margin-top: 0;">🚀 빠른 분석이 필요할 때</h5>
+                    <ul style="font-size: 13px; margin: 10px 0; padding-left: 20px;">
+                        <li><strong>bcftools:</strong> 가장 빠름</li>
+                        <li><strong>FreeBayes:</strong> 속도와 품질 균형</li>
+                        <li><strong>병렬 처리:</strong> 염색체별 분할 실행</li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 style="color: #2c3e50; margin-top: 0;">🎯 높은 정확도가 필요할 때</h5>
+                    <ul style="font-size: 13px; margin: 10px 0; padding-left: 20px;">
+                        <li><strong>GATK4:</strong> 최고 품질 (다배체)</li>
+                        <li><strong>STRELKA2:</strong> 빠르면서 정확 (2배체)</li>
+                        <li><strong>앙상블:</strong> 여러 도구 결과 통합</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h2>📝 GFF3 기반 변이 주석 분석 (Variant Annotation)</h2>
+        <p>변이 검출 후 가장 중요한 단계는 각 변이가 유전자의 어느 부분에 위치하며, 어떤 기능적 영향을 미치는지 파악하는 것입니다.</p>
+
+        <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3498db;">
+            <h4 style="color: #2c3e50; margin-top: 0;">🧬 GFF3 파일의 중요성</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                <div>
+                    <h5 style="color: #2c3e50; margin-top: 0;">GFF3 파일 정보</h5>
+                    <ul style="font-size: 14px; margin: 10px 0; padding-left: 20px;">
+                        <li><strong>유전자 위치:</strong> 염색체상 정확한 좌표</li>
+                        <li><strong>기능 주석:</strong> CDS, UTR, intron, exon</li>
+                        <li><strong>유전자 ID:</strong> 표준 명명법 (GO, KEGG)</li>
+                        <li><strong>계층 구조:</strong> gene → mRNA → exon/CDS</li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 style="color: #2c3e50; margin-top: 0;">변이 주석 결과</h5>
+                    <ul style="font-size: 14px; margin: 10px 0; padding-left: 20px;">
+                        <li><strong>변이 유형:</strong> synonymous, missense, nonsense</li>
+                        <li><strong>아미노산 변화:</strong> p.Ala123Val</li>
+                        <li><strong>영향 예측:</strong> HIGH, MODERATE, LOW</li>
+                        <li><strong>기능 경로:</strong> 대사 경로, 신호 전달</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h3>📋 GFF3 파일 구조 및 유전자 계층 시각화</h3>
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
+            <h4 style="color: #2c3e50; margin-top: 0;">📄 GFF3 파일 예시 (애기장대 AT1G01010 유전자)</h4>
+            
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code>##gff-version 3
+Chr1    TAIR10  gene        3631    5899    .   +   .   ID=AT1G01010;Name=NAC001;Note=NAC domain containing protein 1
+Chr1    TAIR10  mRNA        3631    5899    .   +   .   ID=AT1G01010.1;Parent=AT1G01010;Name=AT1G01010.1
+Chr1    TAIR10  five_prime_UTR  3631    3759    .   +   .   Parent=AT1G01010.1
+Chr1    TAIR10  exon        3631    3913    .   +   .   Parent=AT1G01010.1
+Chr1    TAIR10  CDS         3760    3913    .   +   0   Parent=AT1G01010.1
+Chr1    TAIR10  exon        3996    4276    .   +   .   Parent=AT1G01010.1
+Chr1    TAIR10  CDS         3996    4276    .   +   2   Parent=AT1G01010.1
+Chr1    TAIR10  exon        4486    4605    .   +   .   Parent=AT1G01010.1
+Chr1    TAIR10  CDS         4486    4605    .   +   0   Parent=AT1G01010.1
+Chr1    TAIR10  exon        4706    5095    .   +   .   Parent=AT1G01010.1
+Chr1    TAIR10  CDS         4706    5095    .   +   0   Parent=AT1G01010.1
+Chr1    TAIR10  exon        5174    5326    .   +   .   Parent=AT1G01010.1
+Chr1    TAIR10  CDS         5174    5326    .   +   0   Parent=AT1G01010.1
+Chr1    TAIR10  exon        5439    5899    .   +   .   Parent=AT1G01010.1
+Chr1    TAIR10  CDS         5439    5630    .   +   0   Parent=AT1G01010.1
+Chr1    TAIR10  three_prime_UTR 5631    5899    .   +   .   Parent=AT1G01010.1</code>
+            </div>
+        </div>
+
+        <h3>🎨 유전자 구조 시각적 표현</h3>
+        <div style="background: #ffffff; padding: 25px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="color: #2c3e50; margin-top: 0;">🧬 AT1G01010 유전자 구조 다이어그램</h4>
+            
+            <!-- Gene Structure Visualization -->
+            <div style="margin: 20px 0;">
+                <h5 style="color: #34495e; margin-bottom: 15px;">염색체 1번, 위치: 3,631 - 5,899 bp (+ strand)</h5>
+                
+                <!-- Coordinate ruler -->
+                <div style="position: relative; margin-bottom: 10px;">
+                    <div style="height: 20px; border-bottom: 2px solid #34495e; position: relative;">
+                        <span style="position: absolute; left: 0; bottom: -20px; font-size: 11px; color: #7f8c8d;">3,631</span>
+                        <span style="position: absolute; left: 25%; bottom: -20px; font-size: 11px; color: #7f8c8d;">4,200</span>
+                        <span style="position: absolute; left: 50%; bottom: -20px; font-size: 11px; color: #7f8c8d;">4,750</span>
+                        <span style="position: absolute; left: 75%; bottom: -20px; font-size: 11px; color: #7f8c8d;">5,300</span>
+                        <span style="position: absolute; right: 0; bottom: -20px; font-size: 11px; color: #7f8c8d;">5,899</span>
+                    </div>
+                </div>
+                
+                <!-- Gene structure -->
+                <div style="position: relative; height: 60px; margin: 30px 0;">
+                    <!-- Gene line -->
+                    <div style="position: absolute; top: 25px; left: 0; right: 0; height: 3px; background: #34495e;"></div>
+                    
+                    <!-- 5' UTR -->
+                    <div style="position: absolute; top: 15px; left: 0; width: 6%; height: 20px; background: #95a5a6; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;">5'UTR</div>
+                    
+                    <!-- Exon 1 -->
+                    <div style="position: absolute; top: 10px; left: 6%; width: 12%; height: 30px; background: #3498db; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold;">Exon1</div>
+                    
+                    <!-- Intron 1 -->
+                    <div style="position: absolute; top: 23px; left: 18%; width: 6%; height: 4px; background: #ecf0f1; border-radius: 2px;"></div>
+                    
+                    <!-- Exon 2 -->
+                    <div style="position: absolute; top: 10px; left: 24%; width: 12%; height: 30px; background: #3498db; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold;">Exon2</div>
+                    
+                    <!-- Intron 2 -->
+                    <div style="position: absolute; top: 23px; left: 36%; width: 8%; height: 4px; background: #ecf0f1; border-radius: 2px;"></div>
+                    
+                    <!-- Exon 3 -->
+                    <div style="position: absolute; top: 10px; left: 44%; width: 8%; height: 30px; background: #3498db; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold;">Exon3</div>
+                    
+                    <!-- Intron 3 -->
+                    <div style="position: absolute; top: 23px; left: 52%; width: 7%; height: 4px; background: #ecf0f1; border-radius: 2px;"></div>
+                    
+                    <!-- Exon 4 -->
+                    <div style="position: absolute; top: 10px; left: 59%; width: 10%; height: 30px; background: #3498db; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold;">Exon4</div>
+                    
+                    <!-- Intron 4 -->
+                    <div style="position: absolute; top: 23px; left: 69%; width: 5%; height: 4px; background: #ecf0f1; border-radius: 2px;"></div>
+                    
+                    <!-- Exon 5 -->
+                    <div style="position: absolute; top: 10px; left: 74%; width: 9%; height: 30px; background: #3498db; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold;">Exon5</div>
+                    
+                    <!-- Intron 5 -->
+                    <div style="position: absolute; top: 23px; left: 83%; width: 6%; height: 4px; background: #ecf0f1; border-radius: 2px;"></div>
+                    
+                    <!-- Exon 6 -->
+                    <div style="position: absolute; top: 10px; left: 89%; width: 8%; height: 30px; background: #3498db; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold;">Exon6</div>
+                    
+                    <!-- 3' UTR -->
+                    <div style="position: absolute; top: 15px; right: 0; width: 3%; height: 20px; background: #95a5a6; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 10px; color: white;">3'UTR</div>
+                </div>
+                
+                <!-- Legend -->
+                <div style="display: flex; justify-content: center; gap: 20px; margin-top: 20px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 15px; height: 15px; background: #3498db; border-radius: 2px;"></div>
+                        <span>Exon (CDS)</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 15px; height: 4px; background: #ecf0f1; border-radius: 2px;"></div>
+                        <span>Intron</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <div style="width: 15px; height: 15px; background: #95a5a6; border-radius: 2px;"></div>
+                        <span>UTR</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3>🎯 변이 효과 시각화</h3>
+        <div style="background: #ffffff; padding: 25px; border-radius: 8px; margin: 20px 0; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <h4 style="color: #2c3e50; margin-top: 0;">🧬 다양한 변이 위치에 따른 기능적 영향</h4>
+            
+            <!-- Variant effects visualization -->
+            <div style="margin: 20px 0;">
+                <div style="position: relative; height: 120px; margin: 30px 0;">
+                    <!-- Gene structure (simplified) -->
+                    <div style="position: absolute; top: 50px; left: 0; right: 0; height: 3px; background: #34495e;"></div>
+                    
+                    <!-- 5' UTR -->
+                    <div style="position: absolute; top: 40px; left: 5%; width: 10%; height: 20px; background: #95a5a6; border-radius: 3px;"></div>
+                    
+                    <!-- Exon -->
+                    <div style="position: absolute; top: 35px; left: 15%; width: 25%; height: 30px; background: #3498db; border-radius: 4px;"></div>
+                    
+                    <!-- Intron -->
+                    <div style="position: absolute; top: 48px; left: 40%; width: 20%; height: 4px; background: #ecf0f1; border-radius: 2px;"></div>
+                    
+                    <!-- Exon -->
+                    <div style="position: absolute; top: 35px; left: 60%; width: 25%; height: 30px; background: #3498db; border-radius: 4px;"></div>
+                    
+                    <!-- 3' UTR -->
+                    <div style="position: absolute; top: 40px; left: 85%; width: 10%; height: 20px; background: #95a5a6; border-radius: 3px;"></div>
+                    
+                    <!-- Variant markers -->
+                    <!-- Synonymous variant -->
+                    <div style="position: absolute; top: 15px; left: 20%; width: 3px; height: 50px; background: #27ae60; transform: rotate(-10deg);"></div>
+                    <div style="position: absolute; top: 5px; left: 17%; font-size: 11px; color: #27ae60; font-weight: bold;">동의변이<br/>(LOW)</div>
+                    
+                    <!-- Missense variant -->
+                    <div style="position: absolute; top: 15px; left: 30%; width: 3px; height: 50px; background: #f39c12; transform: rotate(-10deg);"></div>
+                    <div style="position: absolute; top: 5px; left: 27%; font-size: 11px; color: #f39c12; font-weight: bold;">미스센스<br/>(MODERATE)</div>
+                    
+                    <!-- Intronic variant -->
+                    <div style="position: absolute; top: 25px; left: 50%; width: 3px; height: 30px; background: #95a5a6; transform: rotate(-10deg);"></div>
+                    <div style="position: absolute; top: 75px; left: 47%; font-size: 11px; color: #95a5a6; font-weight: bold;">인트론<br/>(MODIFIER)</div>
+                    
+                    <!-- Nonsense variant -->
+                    <div style="position: absolute; top: 15px; left: 70%; width: 3px; height: 50px; background: #e74c3c; transform: rotate(-10deg);"></div>
+                    <div style="position: absolute; top: 5px; left: 67%; font-size: 11px; color: #e74c3c; font-weight: bold;">넌센스<br/>(HIGH)</div>
+                    
+                    <!-- UTR variant -->
+                    <div style="position: absolute; top: 20px; left: 90%; width: 3px; height: 40px; background: #8e44ad; transform: rotate(-10deg);"></div>
+                    <div style="position: absolute; top: 75px; left: 87%; font-size: 11px; color: #8e44ad; font-weight: bold;">UTR<br/>(MODIFIER)</div>
+                </div>
+                
+                <!-- Impact legend -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 30px; font-size: 12px;">
+                    <div style="text-align: center; padding: 10px; background: #d5f4e6; border-radius: 6px; border: 2px solid #27ae60;">
+                        <div style="color: #27ae60; font-weight: bold; margin-bottom: 5px;">LOW</div>
+                        <div>동의변이 (Silent)</div>
+                        <div style="font-size: 11px; color: #666;">아미노산 변화 없음</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #fdeaa7; border-radius: 6px; border: 2px solid #f39c12;">
+                        <div style="color: #f39c12; font-weight: bold; margin-bottom: 5px;">MODERATE</div>
+                        <div>미스센스 (Missense)</div>
+                        <div style="font-size: 11px; color: #666;">아미노산 변화</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #fadbd8; border-radius: 6px; border: 2px solid #e74c3c;">
+                        <div style="color: #e74c3c; font-weight: bold; margin-bottom: 5px;">HIGH</div>
+                        <div>넌센스 (Nonsense)</div>
+                        <div style="font-size: 11px; color: #666;">단백질 절단</div>
+                    </div>
+                    <div style="text-align: center; padding: 10px; background: #f4f4f4; border-radius: 6px; border: 2px solid #95a5a6;">
+                        <div style="color: #95a5a6; font-weight: bold; margin-bottom: 5px;">MODIFIER</div>
+                        <div>비코딩 영역</div>
+                        <div style="font-size: 11px; color: #666;">조절 영향 가능</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h3>🌱 식물별 주요 주석 데이터베이스 및 자원</h3>
+        <div style="display: flex; justify-content: space-around; margin-top: 40px; flex-wrap: wrap;">
+            <div class="tool-card" style="border-left: 4px solid #2196f3;">
+                <h3><i class="fas fa-seedling"></i> 애기장대 (Arabidopsis)</h3>
+                <ul>
+                    <li><strong>주요 DB:</strong> TAIR (The Arabidopsis Information Resource)</li>
+                    <li><strong>GFF3 버전:</strong> TAIR10 (최신 표준)</li>
+                    <li><strong>특징:</strong> 가장 완전한 식물 주석, 풍부한 기능 정보</li>
+                    <li><strong>유전자 수:</strong> ~27,000개 (고품질 주석)</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 주석 자원</h5>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>TAIR:</strong> <a href="https://www.arabidopsis.org" target="_blank">arabidopsis.org</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>Ensembl Plants:</strong> <a href="https://plants.ensembl.org" target="_blank">plants.ensembl.org</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>Phytozome:</strong> <a href="https://phytozome-next.jgi.doe.gov" target="_blank">phytozome-next.jgi.doe.gov</a></p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 애기장대 변이 주석
+# 1. TAIR10 GFF3 다운로드
+wget https://www.arabidopsis.org/download_files/Genes/TAIR10_genome_release/TAIR10_gff3/TAIR10_GFF3_genes.gff
+
+# 2. SnpEff 데이터베이스 구축
+snpEff build -gff3 -v TAIR10
+
+# 3. 변이 주석
+snpEff ann TAIR10 variants.vcf > annotated.vcf</code>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #4caf50;">
+                <h3><i class="fas fa-leaf"></i> 벼 (Rice)</h3>
+                <ul>
+                    <li><strong>주요 DB:</strong> MSU Rice Genome, RAP-DB</li>
+                    <li><strong>GFF3 버전:</strong> MSU7, IRGSP-1.0</li>
+                    <li><strong>특징:</strong> 두 가지 주요 주석 버전 존재</li>
+                    <li><strong>유전자 수:</strong> ~40,000개 (아이소폼 포함)</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 주석 자원</h5>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>MSU Rice:</strong> <a href="https://rice.uga.edu" target="_blank">rice.uga.edu</a> (이전: rice.plantbiology.msu.edu)</p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>RAP-DB:</strong> <a href="https://rapdb.dna.affrc.go.jp" target="_blank">rapdb.dna.affrc.go.jp</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>Gramene:</strong> <a href="https://gramene.org" target="_blank">gramene.org</a></p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 벼 변이 주석 (MSU7 기준)
+# 1. MSU7 GFF3 다운로드
+wget http://rice.plantbiology.msu.edu/pub/data/Eukaryotic_Projects/o_sativa/annotation_dbs/pseudomolecules/version_7.0/all.dir/all.gff3
+
+# 2. VEP 사용 주석
+vep -i variants.vcf -o annotated.vcf \
+    --gff all.gff3 --fasta rice_genome.fa \
+    --species oryza_sativa</code>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #ff9800;">
+                <h3><i class="fas fa-tree"></i> 콩 (Soybean)</h3>
+                <ul>
+                    <li><strong>주요 DB:</strong> SoyBase, Phytozome</li>
+                    <li><strong>GFF3 버전:</strong> Glyma.Wm82.a2.v1</li>
+                    <li><strong>특징:</strong> 4배체 복잡성, 중복 유전자 풍부</li>
+                    <li><strong>유전자 수:</strong> ~50,000개 (다배체 고려)</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 주석 자원</h5>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>SoyBase:</strong> <a href="https://www.soybase.org" target="_blank">soybase.org</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>LegumeInfo:</strong> <a href="https://legumeinfo.org" target="_blank">legumeinfo.org</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>Phytozome:</strong> 콩 전용 섹션</p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 콩 변이 주석 (4배체 고려)
+# 1. Phytozome GFF3 다운로드
+# (계정 필요: phytozome.jgi.doe.gov)
+
+# 2. 다배체 주석 (특별 처리)
+snpEff ann -ploidy 4 Glyma_Wm82_a2_v1 variants.vcf > annotated.vcf
+
+# 3. 동상 유전자 그룹 분석
+python homeolog_analysis.py annotated.vcf</code>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #8e44ad;">
+                <h3><i class="fas fa-wheat-alt"></i> 밀 (Wheat)</h3>
+                <ul>
+                    <li><strong>주요 DB:</strong> WheatBase, IWGSC</li>
+                    <li><strong>GFF3 버전:</strong> IWGSC RefSeq v1.1</li>
+                    <li><strong>특징:</strong> 6배체, A/B/D 하위게놈별 주석</li>
+                    <li><strong>유전자 수:</strong> ~107,000개 (3배 중복)</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 주석 자원</h5>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>IWGSC:</strong> <a href="https://www.wheatgenome.org" target="_blank">wheatgenome.org</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>GrainGenes:</strong> <a href="https://graingenes.org" target="_blank">graingenes.org</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>Triticeae-GeneTribe:</strong> 계통별 비교 주석</p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 밀 변이 주석 (6배체, 하위게놈 구분)
+# 1. IWGSC RefSeq v1.1 다운로드
+wget https://urgi.versailles.inra.fr/download/iwgsc/IWGSC_RefSeq_v1.1/iwgsc_refseqv1.1_genes_2017July06.gff3
+
+# 2. 하위게놈별 주석
+snpEff ann -ploidy 6 wheat_IWGSC_v1.1 variants.vcf > annotated.vcf
+
+# 3. A/B/D 게놈 특이 분석
+python subgenome_annotation.py annotated.vcf</code>
+                </div>
+            </div>
+            
+            <div class="tool-card" style="border-left: 4px solid #e67e22;">
+                <h3><i class="fas fa-corn"></i> 옥수수 (Maize)</h3>
+                <ul>
+                    <li><strong>주요 DB:</strong> MaizeGDB, Gramene</li>
+                    <li><strong>GFF3 버전:</strong> B73 RefGen_v4, v5</li>
+                    <li><strong>특징:</strong> 높은 구조 변이, TE 풍부</li>
+                    <li><strong>유전자 수:</strong> ~39,000개 (구조변이 고려)</li>
+                </ul>
+                
+                <div style="background: #e8f5e8; padding: 10px; border-radius: 4px; margin: 15px 0;">
+                    <h5 style="color: #2d5a2d; margin: 0 0 8px 0; font-size: 14px;">🔗 주석 자원</h5>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>MaizeGDB:</strong> <a href="https://www.maizegdb.org" target="_blank">maizegdb.org</a></p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>CyVerse Data Commons:</strong> <a href="https://datacommons.cyverse.org" target="_blank">datacommons.cyverse.org</a> (G2F 데이터)</p>
+                    <p style="margin: 3px 0; font-size: 12px;"><strong>Panzea:</strong> <a href="https://www.panzea.org" target="_blank">panzea.org</a></p>
+                </div>
+                
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 옥수수 변이 주석 (구조변이 포함)
+# 1. B73 RefGen_v4 GFF3 다운로드
+wget https://download.maizegdb.org/Zm-B73-REFERENCE-GRAMENE-4.0/Zm-B73-REFERENCE-GRAMENE-4.0_Zm00001d.2.gff3.gz
+
+# 2. 구조변이 포함 주석
+snpEff ann Zm_B73_RefGen_v4 variants.vcf > annotated.vcf
+
+# 3. TE 및 반복서열 주석 추가
+RepeatMasker -species maize annotated.vcf</code>
+                </div>
+            </div>
+        </div>
+
+        <h3>🛠️ 주요 변이 주석 도구 비교</h3>
+        <table class="table" style="font-size: 14px;">
+            <thead>
+                <tr>
+                    <th>도구</th>
+                    <th>장점</th>
+                    <th>식물 특화 기능</th>
+                    <th>지원 포맷</th>
+                    <th>추천 용도</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>SnpEff</strong></td>
+                    <td>빠른 속도, 다양한 종 지원</td>
+                    <td>다배체 지원, 식물 DB 풍부</td>
+                    <td>VCF, GFF3</td>
+                    <td>대부분 식물 종</td>
+                </tr>
+                <tr>
+                    <td><strong>VEP (Ensembl)</strong></td>
+                    <td>상세한 주석, 플러그인 시스템</td>
+                    <td>Ensembl Plants 연동</td>
+                    <td>VCF, GFF3, GTF</td>
+                    <td>모델 식물 (애기장대, 벼)</td>
+                </tr>
+                <tr>
+                    <td><strong>ANNOVAR</strong></td>
+                    <td>다양한 주석 소스</td>
+                    <td>사용자 정의 DB 지원</td>
+                    <td>다양한 입력 형식</td>
+                    <td>맞춤형 분석</td>
+                </tr>
+                <tr>
+                    <td><strong>bcftools csq</strong></td>
+                    <td>매우 빠름, 경량</td>
+                    <td>기본적인 식물 주석</td>
+                    <td>VCF, GFF3</td>
+                    <td>빠른 스크리닝</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>📊 식물 특화 주석 분석 워크플로우</h3>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e9ecef;">
+            <h4 style="color: #2c3e50; margin-top: 0;">🔄 표준 주석 파이프라인</h4>
+            
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># 완전한 식물 변이 주석 파이프라인
+
+# 1. 전처리: VCF 정규화 (매우 중요!)
+bcftools norm -m- -f reference.fasta variants.vcf > normalized.vcf
+
+# 2. 기본 주석 (SnpEff)
+snpEff ann species_database normalized.vcf > basic_annotated.vcf
+
+# 3. 추가 기능 주석
+# InterProScan으로 단백질 도메인 주석
+interproscan.sh -i proteins.fasta -f TSV -o interpro.tsv
+
+# 4. GO/KEGG 경로 분석
+python functional_enrichment.py basic_annotated.vcf
+
+# 5. 식물 특화 분석
+# - 대사 경로 영향 평가
+# - 스트레스 반응 유전자 분석  
+# - 발달 관련 유전자 영향
+
+# 6. 최종 리포트 생성
+snpSift extractFields basic_annotated.vcf CHROM POS REF ALT \
+    "ANN[*].GENE" "ANN[*].EFFECT" "ANN[*].IMPACT" > final_report.tsv</code>
+            </div>
+        </div>
+
+        <h3>🔧 VCF 정규화 (bcftools norm)의 중요성</h3>
+        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="color: #856404; margin-top: 0;">❓ 왜 bcftools norm이 필요한가?</h4>
+            <p style="color: #856404; margin: 10px 0;">변이 호출기(variant caller)마다 동일한 변이를 다르게 표현할 수 있습니다. 정확한 주석을 위해서는 표준화된 형태로 변환이 필수입니다.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="background: #f8d7da; padding: 15px; border-radius: 6px; border-left: 3px solid #dc3545;">
+                    <h5 style="color: #721c24; margin-top: 0;">❌ 정규화 전 (문제가 있는 경우)</h5>
+                    <div style="font-family: monospace; font-size: 12px; background: #fff; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        <div>Chr1 1000 . ATCG A,ATG .</div>
+                        <div>Chr1 1001 . TCG T .</div>
+                        <div>Chr1 1002 . CG C .</div>
+                    </div>
+                    <ul style="font-size: 13px; color: #721c24; margin: 10px 0;">
+                        <li>복합 변이가 분리되지 않음</li>
+                        <li>동일한 변이의 중복 표현</li>
+                        <li>left-alignment 되지 않음</li>
+                        <li>주석 도구 혼란 야기</li>
+                    </ul>
+                </div>
+                
+                <div style="background: #d1ecf1; padding: 15px; border-radius: 6px; border-left: 3px solid #17a2b8;">
+                    <h5 style="color: #0c5460; margin-top: 0;">✅ 정규화 후 (올바른 형태)</h5>
+                    <div style="font-family: monospace; font-size: 12px; background: #fff; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                        <div>Chr1 1000 . ATCG A .</div>
+                        <div>Chr1 1000 . A ATG .</div>
+                        <div>Chr1 1001 . T . .</div>
+                        <div>Chr1 1002 . G . .</div>
+                    </div>
+                    <ul style="font-size: 13px; color: #0c5460; margin: 10px 0;">
+                        <li>각 변이가 개별적으로 분리</li>
+                        <li>표준 left-alignment 적용</li>
+                        <li>중복 제거 완료</li>
+                        <li>주석 도구 호환성 확보</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h3>🛠️ bcftools norm 주요 옵션 설명</h3>
+        <div style="background: #e8f4f8; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #17a2b8;">
+            <h4 style="color: #2c3e50; margin-top: 0;">📋 bcftools norm 명령어 상세 분석</h4>
+            
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># 기본 정규화 명령어
+bcftools norm -m- -f reference.fasta variants.vcf > normalized.vcf
+
+# 상세 옵션 설명:
+# -m-    : 복합 변이를 개별 변이로 분리 (multiallelic → biallelic)
+# -f     : 참조 게놈 FASTA 파일 (left-alignment를 위해 필요)
+# -d     : 중복 변이 제거 (선택적)
+# -c e   : 오류 시 경고만 출력하고 계속 진행
+
+# 추가 유용한 옵션들
+bcftools norm -m- -f reference.fasta -d all -c e variants.vcf > normalized.vcf</code>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h5 style="color: #2c3e50; margin-bottom: 10px;">🔍 각 옵션의 기능</h5>
+                <table class="table" style="font-size: 13px;">
+                    <thead>
+                        <tr>
+                            <th>옵션</th>
+                            <th>기능</th>
+                            <th>예시</th>
+                            <th>중요도</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>-m-</code></td>
+                            <td>복합 변이 분리</td>
+                            <td>A→G,T를 A→G와 A→T로 분리</td>
+                            <td>⭐⭐⭐</td>
+                        </tr>
+                        <tr>
+                            <td><code>-f</code></td>
+                            <td>Left-alignment</td>
+                            <td>반복 서열에서 변이 위치 표준화</td>
+                            <td>⭐⭐⭐</td>
+                        </tr>
+                        <tr>
+                            <td><code>-d</code></td>
+                            <td>중복 제거</td>
+                            <td>동일한 변이의 중복 레코드 제거</td>
+                            <td>⭐⭐</td>
+                        </tr>
+                        <tr>
+                            <td><code>-c e</code></td>
+                            <td>오류 처리</td>
+                            <td>문제 있는 레코드를 건너뛰고 계속</td>
+                            <td>⭐</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <h3>🌱 식물 게놈에서 정규화가 특히 중요한 이유</h3>
+        <div style="background: #d5f4e6; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <h4 style="color: #155724; margin-top: 0;">🌾 식물 특화 고려사항</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                <div>
+                    <h5 style="color: #155724; margin-top: 0;">반복 서열 문제</h5>
+                    <ul style="color: #155724; font-size: 13px;">
+                        <li>식물은 반복 서열 비율이 높음 (옥수수 85%)</li>
+                        <li>동일한 INDEL이 다양한 위치로 표현</li>
+                        <li>Left-alignment로 표준 위치 확보</li>
+                        <li>주석 정확도 크게 향상</li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 style="color: #155724; margin-top: 0;">다배체 복잡성</h5>
+                    <ul style="color: #155724; font-size: 13px;">
+                        <li>밀(6배체), 콩(4배체)에서 복합 변이 빈번</li>
+                        <li>동상 유전자 간 변이 구분 필요</li>
+                        <li>정규화로 개별 변이 분리</li>
+                        <li>하위게놈별 분석 가능</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="background: #c3e6cb; padding: 15px; border-radius: 6px; margin-top: 15px;">
+                <h5 style="color: #155724; margin-top: 0;">💡 실무 팁</h5>
+                <ul style="color: #155724; font-size: 13px; margin: 5px 0;">
+                    <li><strong>항상 정규화 먼저:</strong> 어떤 주석 도구를 사용하든 bcftools norm을 먼저 실행</li>
+                    <li><strong>참조 게놈 필수:</strong> -f 옵션 없이는 left-alignment 불가능</li>
+                    <li><strong>로그 확인:</strong> 얼마나 많은 변이가 정규화되었는지 확인</li>
+                    <li><strong>파이프라인 표준화:</strong> 모든 VCF 파일에 동일한 정규화 과정 적용</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="color: #856404; margin-top: 0;">⚠️ 식물 게놈 주석시 주의사항</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                <div>
+                    <h5 style="color: #856404; margin-top: 0;">다배체 식물</h5>
+                    <ul style="color: #856404; font-size: 13px;">
+                        <li>동상 유전자 구분 필요</li>
+                        <li>하위게놈별 주석 분리</li>
+                        <li>배수성에 따른 변이 해석</li>
+                        <li>유전자 복사본 간 기능 차이</li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 style="color: #856404; margin-top: 0;">식물 특화 고려사항</h5>
+                    <ul style="color: #856404; font-size: 13px;">
+                        <li>엽록체/미토콘드리아 게놈</li>
+                        <li>전이인자(TE) 높은 비율</li>
+                        <li>조직 특이적 발현 패턴</li>
+                        <li>환경 스트레스 반응 경로</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 1 / 2</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "../class2/index.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide02.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    function copyCode(button) {
+        const codeBlock = button.nextElementSibling;
+        const codeText = codeBlock.textContent.trim();
+        
+        navigator.clipboard.writeText(codeText).then(function() {
+            button.textContent = '복사됨!';
+            button.classList.add('copied');
+            setTimeout(function() {
+                button.textContent = '복사';
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(function() {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                button.textContent = '복사됨!';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.textContent = '복사';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

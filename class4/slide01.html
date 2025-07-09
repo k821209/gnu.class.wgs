@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실습 환경 소개 - JupyterLab 기반 WGS 분석</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #27ae60; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #27ae60; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 14px; white-space: pre-wrap; border: 1px solid #444; position: relative; }
+        .code-block-container { position: relative; }
+        .copy-button { position: absolute; top: 10px; right: 10px; background: #444; color: #f8f8f2; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; opacity: 0.7; transition: opacity 0.2s; }
+        .copy-button:hover { opacity: 1; background: #555; }
+        .copy-button.copied { background: #27ae60; color: white; }
+        .copy-button.copied:after { content: " ✓"; }
+        .code-block.python { /* Python code blocks */ }
+        .code-block.bash { /* Bash code blocks */ }
+        
+        /* Syntax highlighting color classes */
+        .comment { color: #75715e; } /* Comments */
+        .keyword { color: #f92672; } /* Keywords */
+        .function { color: #a6e22e; } /* Function names */
+        .string { color: #e6db74; } /* Strings */
+        .number { color: #ae81ff; } /* Numbers */
+        .param { color: #fd971f; } /* Parameters */
+        .variable { color: #f8f8f2; } /* Variables */
+        .builtin { color: #a6e22e; } /* Built-in functions */
+        .operator { color: #f92672; } /* Operators */
+        .shebang { color: #75715e; } /* Shebang */
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #27ae60; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #229954; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #3498db; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #2980b9; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #27ae60; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .setup-steps { background: #e8f4fd; border-left: 4px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">🖥️ 실습 환경 소개</div>
+    <div class="slide-content">
+        <h2>🎯 실습 목표</h2>
+        <p>실제 식물 게놈 데이터를 사용하여 전체 WGS 분석 파이프라인을 수행하고, JupyterLab 환경에서 Python을 활용한 생물정보학 분석 기법을 익힙니다.</p>
+
+        <div class="comparison-table">
+            <div class="comparison-item">
+                <h4><i class="fas fa-bullseye"></i> 학습 목표</h4>
+                <ul>
+                    <li>FASTQ 파일 구조 이해 및 품질 평가</li>
+                    <li>품질 관리 및 전처리 기법</li>
+                    <li>참조 게놈 정렬 과정</li>
+                    <li>변이 호출 및 결과 해석</li>
+                    <li>Python 생물정보학 라이브러리 활용</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #f39c12;">
+                <h4><i class="fas fa-tools"></i> 사용 도구</h4>
+                <ul>
+                    <li><strong>JupyterLab:</strong> 인터랙티브 분석 환경</li>
+                    <li><strong>Python:</strong> BioPython, pandas, matplotlib</li>
+                    <li><strong>FastQC:</strong> 품질 평가</li>
+                    <li><strong>Trimmomatic:</strong> 어댑터 제거</li>
+                    <li><strong>BWA-MEM:</strong> 게놈 정렬</li>
+                    <li><strong>GATK:</strong> 변이 호출</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>☁️ Amazon EC2 실습 환경</h2>
+        
+        <div class="setup-steps">
+            <h3><i class="fas fa-cloud"></i> 사전 배포된 Amazon EC2 인스턴스</h3>
+            
+            <div style="background: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #6c757d;">
+                <h4 style="color: #495057; margin: 0 0 10px 0;"><i class="fas fa-laptop-code"></i> JupyterLab 실습 환경이란?</h4>
+                <p style="color: #495057; margin: 0 0 10px 0; font-size: 14px;">
+                    <strong>JupyterLab</strong>은 데이터 과학과 생물정보학 분야에서 널리 사용되는 웹 기반 대화형 개발 환경입니다.
+                </p>
+                <div class="comparison-table" style="margin-top: 15px;">
+                    <div class="comparison-item" style="border-left-color: #17a2b8; background: #ffffff;">
+                        <h4><i class="fas fa-chart-line"></i> 주요 기능</h4>
+                        <ul style="font-size: 13px;">
+                            <li><strong>노트북:</strong> 코드, 텍스트, 그래프를 하나의 문서에</li>
+                            <li><strong>실시간 실행:</strong> 코드를 셀 단위로 실행 및 결과 확인</li>
+                            <li><strong>시각화:</strong> 그래프와 차트를 바로 확인</li>
+                            <li><strong>문서화:</strong> 마크다운으로 분석 과정 기록</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-item" style="border-left-color: #28a745; background: #ffffff;">
+                        <h4><i class="fas fa-dna"></i> 생물정보학에서의 장점</h4>
+                        <ul style="font-size: 13px;">
+                            <li><strong>탐색적 분석:</strong> 단계별 데이터 탐색</li>
+                            <li><strong>결과 시각화:</strong> 즉시 그래프 생성 및 확인</li>
+                            <li><strong>재현가능성:</strong> 분석 과정을 순서대로 기록</li>
+                            <li><strong>협업:</strong> 노트북 공유로 분석 과정 전달</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                    <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                        <strong>💡 실습에서는</strong> FASTQ 파일 분석부터 변이 호출까지 모든 과정을 JupyterLab에서 
+                        단계별로 진행하며, 각 단계의 결과를 바로 확인할 수 있습니다.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #ff9900;">
+                    <h4><i class="fas fa-server"></i> AWS 실습 환경 사양</h4>
+                    <ul>
+                        <li><strong>EC2 인스턴스:</strong> t3.xlarge (4 vCPU, 16GB RAM)</li>
+                        <li><strong>EBS 스토리지:</strong> 100GB</li>
+                        <li><strong>운영체제:</strong> Ubuntu 22.04 LTS</li>
+                        <li><strong>기본 설치:</strong> Python 3.10, conda, JupyterLab</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #2196f3;">
+                    <h4><i class="fas fa-globe"></i> 접속 정보</h4>
+                    <ul>
+                        <li><strong>IP 주소:</strong> predistributed ip address</li>
+                        <li><strong>접속 방식:</strong> 웹 브라우저 직접 접속</li>
+                        <li><strong>포트:</strong> 8888 (JupyterLab)</li>
+                        <li><strong>인증:</strong> 토큰 인증 없음</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h4>1. JupyterLab 접속</h4>
+            <p>JupyterLab이 이미 실행되어 있어 바로 웹 브라우저로 접속 가능합니다.</p>
+            
+            <div class="code-block"># JupyterLab이 사전 구성되어 실행 중입니다
+# 별도 설정 없이 바로 웹 접속 가능
+
+# 필요시 상태 확인
+ps aux | grep jupyter</div>
+
+            <h4>2. 웹 브라우저에서 JupyterLab 접속</h4>
+            <ul>
+                <li>브라우저에서 <code>http://[predistributed-ip-address]:8888</code> 직접 접속</li>
+                <li>JupyterLab이 바로 열립니다 (토큰 인증 없음)</li>
+                <li>새로운 Python 노트북을 생성하여 실습 진행</li>
+            </ul>
+        </div>
+
+        <h2>📁 실습 데이터 준비</h2>
+        
+        <div class="comparison-table">
+            <div class="comparison-item" style="border-left-color: #2980b9;">
+                <h4><i class="fas fa-database"></i> 실습 데이터셋</h4>
+                <ul>
+                    <li><strong>종:</strong> 콩 (Glycine max, Soybean)</li>
+                    <li><strong>시퀀싱 데이터 ID:</strong> ERR3184150 (SRA)</li>
+                    <li><strong>FASTQ 파일:</strong> ERR3184150_top_1.fastq.gz, ERR3184150_top_2.fastq.gz</li>
+                    <li><strong>데이터 타입:</strong> Paired-end Illumina 시퀀싱</li>
+                    <li><strong>크기:</strong> 상위 리드만 포함 (교육용)</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #8e44ad;">
+                <h4><i class="fas fa-folder-open"></i> EC2 데이터 구조</h4>
+                <div class="code-block" style="background: #f8f9fa; color: #2c3e50; font-size: 12px; white-space: pre-line;">/home/ubuntu/edu/
+├── raw_data/
+│   ├── ERR3184150_top_1.fastq.gz
+│   └── ERR3184150_top_2.fastq.gz
+├── reference/
+│   ├── soybean_genome.fa
+│   └── soybean_genome.fa.fai
+├── notebooks/
+│   └── (실습 중 생성할 노트북들)
+└── results/
+    └── (분석 결과 저장)</div>
+            </div>
+        </div>
+
+        <h3>📥 데이터 다운로드</h3>
+        <p>실습에서 사용할 FASTQ 파일과 참조 게놈을 다운로드합니다:</p>
+        
+        <div class="code-block"># 작업 디렉토리 생성
+mkdir -p /home/ubuntu/edu/{raw_data,reference,notebooks,results}
+
+# 1. FASTQ 파일 다운로드
+cd /home/ubuntu/edu/raw_data
+wget -O ERR3184150_top_1.fastq.gz "https://firebasestorage.googleapis.com/v0/b/deevo-pms.firebasestorage.app/o/projects%2FxarMbxJAWs2OZxbT52ge%2Fsamples%2FkAM4LgNHWPRwjOSNwIKs%2Ffiles%2FERR3184150_top_1_1751980180958.gz?alt=media&token=b0cd6eaa-eee9-4325-a326-5971596c1b28"
+
+wget -O ERR3184150_top_2.fastq.gz "https://firebasestorage.googleapis.com/v0/b/deevo-pms.firebasestorage.app/o/projects%2FxarMbxJAWs2OZxbT52ge%2Fsamples%2FkAM4LgNHWPRwjOSNwIKs%2Ffiles%2FERR3184150_top_2_1751980180959.gz?alt=media&token=9ba9ce53-afaf-48e8-9c44-bcde89aff45f"
+
+# 2. 콩 참조 게놈 다운로드 (SoyBase 공식)
+cd /home/ubuntu/edu/reference
+# 콩(Glycine max) Wm82 genome v6 다운로드
+wget -O soybean_genome.fa.gz "https://data.soybase.org/Glycine/max/genomes/Wm82.gnm6.S97D/glyma.Wm82.gnm6.S97D.genome_main.fna.gz"
+
+# 압축 해제
+gunzip soybean_genome.fa.gz
+
+# 3. gVCF 변이 파일 다운로드 (실습용)
+cd /home/ubuntu/edu/variants
+mkdir -p gvcf_samples
+
+# 콩 게놈 Chromosome 01 변이 데이터 (3개 샘플)
+wget -O DRR145099.gvcf.var.Gm01.gz "https://firebasestorage.googleapis.com/v0/b/deevo-pms.firebasestorage.app/o/projects%2FxarMbxJAWs2OZxbT52ge%2Fsamples%2FkAM4LgNHWPRwjOSNwIKs%2Ffiles%2FDRR145099_1752076724814.gz?alt=media&token=eea4e60d-6f8a-4751-9418-76309a300c4d"
+
+wget -O DRR151884.gvcf.var.Gm01.gz "https://firebasestorage.googleapis.com/v0/b/deevo-pms.firebasestorage.app/o/projects%2FxarMbxJAWs2OZxbT52ge%2Fsamples%2FkAM4LgNHWPRwjOSNwIKs%2Ffiles%2FDRR151884_1752076724814.gz?alt=media&token=099a31f7-c6f8-4e4c-a208-e7d219001e68"
+
+wget -O DRR151901.gvcf.var.Gm01.gz "https://firebasestorage.googleapis.com/v0/b/deevo-pms.firebasestorage.app/o/projects%2FxarMbxJAWs2OZxbT52ge%2Fsamples%2FkAM4LgNHWPRwjOSNwIKs%2Ffiles%2FDRR151901_1752076724813.gz?alt=media&token=d701ebe4-4736-4d70-ab38-8f8cfa91ea3f"
+
+# 압축 해제
+gunzip *.gz
+
+# 4. 다운로드 확인
+ls -lh /home/ubuntu/edu/raw_data/*.fastq.gz
+ls -lh /home/ubuntu/edu/reference/*.fa
+ls -lh /home/ubuntu/edu/variants/*.gvcf.var.Gm01
+
+# notebooks 디렉토리로 이동하여 실습 시작
+cd /home/ubuntu/edu/notebooks</div>
+        
+        <div style="background: #e8f4fd; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #3498db;">
+            <h4 style="color: #1976d2; margin: 0 0 10px 0;"><i class="fas fa-dna"></i> 실습용 gVCF 변이 데이터 정보</h4>
+            <div class="comparison-table" style="margin-top: 10px;">
+                <div class="comparison-item" style="border-left-color: #28a745; background: #ffffff;">
+                    <h4>gVCF 파일 특징</h4>
+                    <ul style="font-size: 13px;">
+                        <li><strong>파일 형식:</strong> .gvcf (Genomic VCF)</li>
+                        <li><strong>대상 염색체:</strong> Gm01 (콩 1번 염색체)</li>
+                        <li><strong>샘플 수:</strong> 3개 (DRR145099, DRR151884, DRR151901)</li>
+                        <li><strong>데이터 출처:</strong> 일본 콩 품종 변이 데이터</li>
+                        <li><strong>용도:</strong> gVCF vs VCF 비교 실습</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #17a2b8; background: #ffffff;">
+                    <h4>실습 활용 방법</h4>
+                    <ul style="font-size: 13px;">
+                        <li><strong>블록 압축:</strong> END 태그 확인</li>
+                        <li><strong>&lt;NON_REF&gt;:</strong> 참조 위치 분석</li>
+                        <li><strong>변이 호출:</strong> 실제 SNP/INDEL 확인</li>
+                        <li><strong>다중 샘플:</strong> 샘플 간 변이 비교</li>
+                        <li><strong>품질 평가:</strong> INFO 필드 분석</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                    <strong>📊 실습 데이터 특징:</strong> 이 gVCF 파일들은 실제 콩 게놈 연구에서 생성된 데이터로, 
+                    GATK HaplotypeCaller의 출력 형태를 그대로 보여줍니다. 블록 압축, &lt;NON_REF&gt; 처리, 
+                    다중 대립유전자 등 gVCF의 모든 특징을 실습할 수 있습니다.
+                </p>
+            </div>
+        </div>
+
+        <div style="background: #fff3cd; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #ffc107;">
+            <h4 style="color: #856404; margin: 0 0 10px 0;"><i class="fas fa-seedling"></i> 콩(Soybean) 참조 게놈 정보</h4>
+            <div class="comparison-table" style="margin-top: 10px;">
+                <div class="comparison-item" style="border-left-color: #28a745; background: #ffffff;">
+                    <h4>Wm82 Genome v6 (SoyBase)</h4>
+                    <ul style="font-size: 13px;">
+                        <li><strong>학명:</strong> Glycine max</li>
+                        <li><strong>품종:</strong> Williams 82 (Wm82)</li>
+                        <li><strong>버전:</strong> gnm6.S97D (최신 버전)</li>
+                        <li><strong>게놈 크기:</strong> ~1.1 Gb (1,115 Mb)</li>
+                        <li><strong>염색체:</strong> 20개 (Chr01-Chr20)</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #17a2b8; background: #ffffff;">
+                    <h4>SoyBase 데이터베이스</h4>
+                    <ul style="font-size: 13px;">
+                        <li><strong>공식 DB:</strong> data.soybase.org</li>
+                        <li><strong>고품질:</strong> 큐레이션된 참조 게놈</li>
+                        <li><strong>표준 참조:</strong> 국제적으로 사용되는 표준</li>
+                        <li><strong>주석 정보:</strong> 유전자 주석 포함</li>
+                        <li><strong>연구 활용:</strong> 콩 연구의 표준 참조</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                    <strong>📊 Williams 82</strong>는 콩 연구에서 가장 널리 사용되는 표준 품종으로, 
+                    전세계 콩 유전체 연구의 참조 게놈으로 활용됩니다.
+                </p>
+            </div>
+        </div>
+
+        <h2>🐍 Python 환경 설정</h2>
+        
+        <div class="setup-steps">
+            <h3><i class="fas fa-code"></i> 기본 설치된 환경</h3>
+            
+            <p>EC2 인스턴스에는 기본적으로 다음만 설치되어 있습니다:</p>
+            
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #f39c12;">
+                    <h4><i class="fas fa-flask"></i> 기본 환경</h4>
+                    <ul>
+                        <li><strong>Ubuntu 22.04 LTS</strong></li>
+                        <li><strong>Python 3.10</strong></li>
+                        <li><strong>conda</strong> (패키지 관리자)</li>
+                        <li><strong>JupyterLab</strong> (실습 환경)</li>
+                        <li><strong>pip</strong> (패키지 관리자)</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #e74c3c;">
+                    <h4><i class="fas fa-graduation-cap"></i> 실습에서 설치할 도구</h4>
+                    <ul>
+                        <li><strong>BioPython:</strong> 서열 분석 라이브러리</li>
+                        <li><strong>pandas, numpy:</strong> 데이터 처리</li>
+                        <li><strong>matplotlib, seaborn:</strong> 시각화</li>
+                        <li><strong>FastQC:</strong> 품질 평가 도구</li>
+                        <li><strong>BWA, SAMtools:</strong> 정렬 및 처리</li>
+                        <li><strong>GATK4:</strong> 변이 호출 도구</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #ffc107;">
+                <h4 style="color: #856404; margin: 0 0 10px 0;"><i class="fas fa-info-circle"></i> 실습 목표</h4>
+                <p style="color: #856404; margin: 0; font-size: 14px;">
+                    생물정보학 도구들을 직접 설치하고 설정하는 과정을 통해 실제 연구 환경 구축 방법을 학습합니다.
+                </p>
+            </div>
+
+            <h3>📝 실습 과정</h3>
+            <p>실습에서는 다음 순서로 환경을 구축하고 분석을 진행합니다:</p>
+            <ol style="margin: 15px 0; padding-left: 30px;">
+                <li><strong>데이터 다운로드:</strong> ERR3184150 FASTQ 파일 및 콩 참조 게놈 획득</li>
+                <li><strong>conda 환경 생성:</strong> 생물정보학 전용 환경 구축</li>
+                <li><strong>Python 패키지 설치:</strong> BioPython, pandas, matplotlib 등</li>
+                <li><strong>생물정보학 도구 설치:</strong> FastQC, BWA, SAMtools, GATK</li>
+                <li><strong>참조 게놈 인덱싱:</strong> BWA 및 SAMtools 인덱스 생성</li>
+                <li><strong>데이터 탐색:</strong> FASTQ 파일 구조 이해</li>
+                <li><strong>품질 관리:</strong> 데이터 전처리 및 필터링</li>
+                <li><strong>게놈 정렬:</strong> 콩 참조 게놈에 대한 리드 매핑</li>
+                <li><strong>변이 호출:</strong> SNP/INDEL 검출 및 분석</li>
+            </ol>
+            
+            <h3>🛠️ conda 환경 및 도구 설치</h3>
+            <p>생물정보학 분석을 위한 전용 conda 환경을 생성하고 필요한 도구들을 설치합니다:</p>
+            
+            <div class="code-block bash"># 1. conda 환경 생성
+conda create -n bioinformatics python=3.10 -y
+conda activate bioinformatics
+
+# 2. Python 패키지 설치 (conda)
+conda install -c conda-forge biopython pandas numpy matplotlib seaborn plotly jupyter -y
+
+# 3. pysam은 pip로 설치 (conda 호환성 문제 방지)
+pip install pysam
+
+# 4. 생물정보학 도구 설치 (bioconda 채널)
+conda install -c bioconda fastqc trimmomatic bwa samtools gatk4 bcftools -y
+
+# 5. 참조 게놈 인덱스 생성
+cd /home/ubuntu/edu/reference
+
+# BWA 인덱스 생성 (정렬용)
+bwa index soybean_genome.fa
+
+# SAMtools 인덱스 생성 (GATK용)
+samtools faidx soybean_genome.fa
+
+# 6. 설치 및 인덱스 생성 확인
+conda list | grep -E "(biopython|pandas|fastqc|bwa|samtools|gatk)"
+pip list | grep pysam
+ls -lh /home/ubuntu/edu/reference/soybean_genome.fa*</div>
+            
+            <div style="background: #e8f4fd; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #3498db;">
+                <h4 style="color: #1976d2; margin: 0 0 10px 0;"><i class="fas fa-info-circle"></i> 설치 방법 선택 이유</h4>
+                <ul style="color: #1976d2; margin: 0; font-size: 14px;">
+                    <li><strong>conda:</strong> 대부분의 패키지들 (dependency 관리 우수)</li>
+                    <li><strong>pip (pysam):</strong> conda 버전 호환성 문제 방지</li>
+                    <li><strong>bioconda:</strong> 생물정보학 전문 도구들 (8,000+ 패키지)</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>✅ 설치 완료 후 환경 확인</h2>
+        <p>모든 도구가 올바르게 설치되었는지 확인합니다:</p>
+        
+        <div class="code-block bash"># bioinformatics 환경 활성화
+conda activate bioinformatics
+
+# Python 패키지 확인
+python -c "import pandas, numpy, matplotlib, seaborn, Bio, pysam; print('✅ Python 패키지 정상')"
+
+# 생물정보학 도구 버전 확인
+fastqc --version
+bwa
+samtools --version
+gatk --version
+
+# 다운로드된 데이터 파일 확인
+ls -lh /home/ubuntu/edu/raw_data/ERR3184150_top_*.fastq.gz
+ls -lh /home/ubuntu/edu/reference/soybean_genome.fa*
+
+# 콩 참조 게놈 정보 확인
+head -5 /home/ubuntu/edu/reference/soybean_genome.fa
+
+# 전체 환경 요약
+echo "🎉 설치 완료! 콩 게놈 WGS 분석 준비 완료"</div>
+        
+        <div style="background: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #6c757d;">
+            <h4 style="color: #495057; margin: 0 0 10px 0;"><i class="fas fa-code"></i> JupyterLab에서 FASTQ 리드 수 확인 테스트</h4>
+            <p style="color: #495057; margin: 0 0 10px 0; font-size: 14px;">
+                환경 설정이 완료되면 JupyterLab에서 다음 Python 코드를 실행하여 FASTQ 파일의 리드 수를 확인해보세요:
+            </p>
+            
+            <div class="code-block python">import gzip
+import os
+
+def count_reads(fastq_file):
+    count = 0
+    try:
+        with gzip.open(fastq_file, 'rt') as f:
+            for i, line in enumerate(f):
+                if i % 4 == 0:
+                    count += 1
+        return count
+    except:
+        return 0
+
+file1 = "/home/ubuntu/edu/raw_data/ERR3184150_top_1.fastq.gz"
+file2 = "/home/ubuntu/edu/raw_data/ERR3184150_top_2.fastq.gz"
+
+print("FASTQ 파일 분석 결과")
+print("=" * 30)
+
+if os.path.exists(file1):
+    reads1 = count_reads(file1)
+    print(f"R1 파일: {reads1:,} reads")
+else:
+    print("R1 파일을 찾을 수 없습니다")
+
+if os.path.exists(file2):
+    reads2 = count_reads(file2)
+    print(f"R2 파일: {reads2:,} reads")
+else:
+    print("R2 파일을 찾을 수 없습니다")
+
+total = reads1 + reads2
+print(f"총 리드 수: {total:,}")
+print("분석 완료")</div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                    <strong>💡 사용법:</strong> JupyterLab에서 새 노트북을 생성하고 위 코드를 셀에 복사한 후 실행하세요. 
+                    정상적으로 설치되었다면 각 FASTQ 파일의 리드 개수가 출력됩니다.
+                </p>
+            </div>
+        </div>
+        
+        <div style="background: #f8f9fa; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #6c757d;">
+            <h4 style="color: #495057; margin: 0 0 10px 0;"><i class="fas fa-dna"></i> 참조 게놈 통계 확인 테스트</h4>
+            <p style="color: #495057; margin: 0 0 10px 0; font-size: 14px;">
+                콩 참조 게놈 파일의 기본 통계 정보를 확인하는 Python 코드입니다:
+            </p>
+            
+            <div class="code-block python">#!/usr/bin/env python3
+import os
+from Bio import SeqIO
+from collections import Counter
+
+def analyze_reference_genome(fasta_file):
+    """참조 게놈 FASTA 파일의 통계를 분석합니다."""
+    
+    if not os.path.exists(fasta_file):
+        print(f"❌ 파일을 찾을 수 없습니다: {fasta_file}")
+        return None
+    
+    print(f"🧬 참조 게놈 분석: {os.path.basename(fasta_file)}")
+    print("=" * 50)
+    
+    sequences = []
+    total_length = 0
+    chromosome_info = []
+    
+    try:
+        # FASTA 파일 읽기
+        with open(fasta_file, 'r') as handle:
+            for record in SeqIO.parse(handle, "fasta"):
+                seq_len = len(record.seq)
+                sequences.append(record)
+                total_length += seq_len
+                chromosome_info.append({
+                    'id': record.id,
+                    'length': seq_len,
+                    'description': record.description
+                })
+        
+        # 기본 통계
+        print(f"총 서열 수: {len(sequences):,}")
+        print(f"전체 게놈 크기: {total_length:,} bp ({total_length/1_000_000:.1f} Mb)")
+        
+        # 염색체 정보 (상위 10개)
+        print(f"\n📊 염색체/서열 정보 (상위 10개):")
+        chromosome_info.sort(key=lambda x: x['length'], reverse=True)
+        
+        for i, chr_info in enumerate(chromosome_info[:10], 1):
+            chr_id = chr_info['id']
+            chr_len = chr_info['length']
+            print(f"{i:2d}. {chr_id}: {chr_len:,} bp ({chr_len/1_000_000:.2f} Mb)")
+        
+        if len(chromosome_info) > 10:
+            print(f"    ... 및 {len(chromosome_info)-10}개 추가 서열")
+        
+        # 염기 조성 분석 (첫 번째 염색체만)
+        if sequences:
+            first_seq = str(sequences[0].seq).upper()
+            base_count = Counter(first_seq)
+            
+            print(f"\n🧪 염기 조성 분석 ({sequences[0].id}):")
+            total_bases = sum(base_count.values())
+            
+            for base in ['A', 'T', 'G', 'C', 'N']:
+                count = base_count.get(base, 0)
+                percentage = (count / total_bases) * 100 if total_bases > 0 else 0
+                print(f"  {base}: {count:,} ({percentage:.2f}%)")
+            
+            gc_content = (base_count.get('G', 0) + base_count.get('C', 0)) / total_bases * 100
+            print(f"  GC 함량: {gc_content:.2f}%")
+        
+        print("\n✅ 참조 게놈 분석 완료!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ 분석 중 오류 발생: {e}")
+        return False
+
+# 콩 참조 게놈 분석 실행
+reference_file = "/home/ubuntu/edu/reference/soybean_genome.fa"
+analyze_reference_genome(reference_file)</div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #856404;">
+                    <strong>⚠️ 주의:</strong> 이 코드는 BioPython이 설치된 후에 실행하세요. 
+                    참조 게놈 파일이 크므로 분석에 시간이 걸릴 수 있습니다.
+                </p>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                    <strong>🔬 분석 내용:</strong> 이 코드는 콩 참조 게놈의 총 크기, 염색체 수, 
+                    각 염색체 길이, 염기 조성(A, T, G, C, N), GC 함량 등을 분석합니다.
+                </p>
+            </div>
+        </div>
+        
+        <div style="background: #d4edda; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #28a745;">
+            <h4 style="color: #155724; margin: 0 0 10px 0;"><i class="fas fa-check-circle"></i> 설치 완료 체크리스트</h4>
+            <ul style="color: #155724; margin: 0; font-size: 14px;">
+                <li>✅ conda 환경 (bioinformatics) 생성 완료</li>
+                <li>✅ Python 패키지 (pandas, BioPython, pysam 등) 설치 완료</li>
+                <li>✅ 생물정보학 도구 (FastQC, BWA, SAMtools, GATK) 설치 완료</li>
+                <li>✅ ERR3184150 FASTQ 데이터 (콩 시퀀싱) 다운로드 완료</li>
+                <li>✅ 콩(Glycine max) 참조 게놈 다운로드 완료</li>
+                <li>✅ BWA 및 SAMtools 인덱스 생성 완료</li>
+                <li>🚀 콩 게놈 WGS 분석 준비 완료!</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToIndex()">🏠 목차</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 1 / 8</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "index.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide02.html";
+    }
+    
+    function jumpToIndex() {
+        window.location.href = "index.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToIndex();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+    
+    // Syntax highlighting function
+    function highlightCode() {
+        const codeBlocks = document.querySelectorAll('.code-block');
+        
+        codeBlocks.forEach(block => {
+            const code = block.textContent;
+            const language = block.classList.contains('python') ? 'python' : 
+                           block.classList.contains('bash') ? 'bash' : 'python'; // default to python
+            
+            const highlightedCode = highlightSyntax(code, language);
+            block.innerHTML = highlightedCode;
+            
+            // Add copy button
+            addCopyButton(block, code);
+        });
+    }
+    
+    // Add copy button to code block
+    function addCopyButton(codeBlock, originalCode) {
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.title = 'Copy code to clipboard';
+        
+        copyButton.addEventListener('click', function() {
+            copyToClipboard(originalCode, copyButton);
+        });
+        
+        codeBlock.appendChild(copyButton);
+    }
+    
+    // Copy text to clipboard
+    function copyToClipboard(text, button) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern approach
+            navigator.clipboard.writeText(text).then(function() {
+                showCopySuccess(button);
+            }).catch(function() {
+                fallbackCopyToClipboard(text, button);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyToClipboard(text, button);
+        }
+    }
+    
+    // Fallback copy method
+    function fallbackCopyToClipboard(text, button) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showCopySuccess(button);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+        
+        document.body.removeChild(textArea);
+    }
+    
+    // Show copy success feedback
+    function showCopySuccess(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(function() {
+            button.textContent = originalText;
+            button.classList.remove('copied');
+        }, 2000);
+    }
+    
+    function highlightSyntax(code, language) {
+        if (language === 'python') {
+            return highlightPython(code);
+        } else if (language === 'bash') {
+            return highlightBash(code);
+        }
+        return code;
+    }
+    
+    function highlightPython(code) {
+        let highlighted = code;
+        
+        // 1. Highlight strings first
+        highlighted = highlighted.replace(/"[^"]*"/g, '<span class="string">$&</span>');
+        highlighted = highlighted.replace(/'[^']*'/g, '<span class="string">$&</span>');
+        
+        // 2. Highlight comments
+        highlighted = highlighted.replace(/#.*$/gm, '<span class="comment">$&</span>');
+        
+        // 3. Highlight keywords
+        const keywords = ['import', 'from', 'def', 'if', 'else', 'elif', 'for', 'while', 'try', 'except', 'with', 'as', 'return', 'and', 'or', 'not', 'in', 'is', 'True', 'False', 'None'];
+        keywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+        });
+        
+        // 4. Highlight built-in functions
+        const builtins = ['print', 'len', 'open', 'range', 'enumerate', 'gzip', 'os'];
+        builtins.forEach(builtin => {
+            const regex = new RegExp(`\\b${builtin}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="builtin">${builtin}</span>`);
+        });
+        
+        // 5. Highlight function definitions
+        highlighted = highlighted.replace(/\b(def\s+)(\w+)/g, '$1<span class="function">$2</span>');
+        
+        // 6. Highlight numbers
+        highlighted = highlighted.replace(/\b\d+\b/g, '<span class="number">$&</span>');
+        
+        return highlighted;
+    }
+    
+    function highlightBash(code) {
+        const keywords = ['if', 'then', 'else', 'elif', 'fi', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'local', 'export', 'echo', 'cd', 'ls', 'mkdir', 'cp', 'mv', 'rm', 'chmod', 'chown', 'grep', 'sed', 'awk', 'sort', 'uniq', 'wc', 'cat', 'head', 'tail'];
+        
+        // Split into lines to process line by line (avoids conflicts)
+        const lines = code.split('\n');
+        const highlightedLines = [];
+        
+        for (let line of lines) {
+            let highlighted = line;
+            
+            // Skip if line is empty
+            if (!highlighted.trim()) {
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 1. Highlight shebang
+            if (highlighted.match(/^#!/)) {
+                highlighted = highlighted.replace(/^(#!.*)$/, '<span class="shebang">$1</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 2. Highlight full-line comments
+            if (highlighted.trim().startsWith('#')) {
+                highlighted = highlighted.replace(/^(\s*)(#.*)$/, '$1<span class="comment">$2</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 3. Highlight strings
+            highlighted = highlighted.replace(/("[^"]*")/g, '<span class="string">$1</span>');
+            highlighted = highlighted.replace(/('[^']*')/g, '<span class="string">$1</span>');
+            
+            // 4. Highlight inline comments (after code)
+            highlighted = highlighted.replace(/(\s+)(#.*)$/, '$1<span class="comment">$2</span>');
+            
+            // 5. Highlight variables
+            highlighted = highlighted.replace(/(\$\w+)/g, '<span class="variable">$1</span>');
+            
+            // 6. Highlight keywords
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+            });
+            
+            highlightedLines.push(highlighted);
+        }
+        
+        return highlightedLines.join('\n');
+    }
+    
+    // Apply syntax highlighting when page loads
+    document.addEventListener('DOMContentLoaded', highlightCode);
+</script>
+
+</body>
+</html>

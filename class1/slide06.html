@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 기초 이론 - Illumina NGS Technology</title>
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #282c34; color: #abb2bf; border: 1px solid #3e4451; padding: 15px; border-radius: 5px; font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace; margin: 15px 0; overflow-x: auto; }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+<div class="slide-title">Illumina NGS 기술 상세</div>
+    <div class="slide-content">
+        <h2>🔬 Illumina 시퀀싱 원리</h2>
+        
+        <h3>⚙️ Bridge Amplification (클러스터 생성)</h3>
+        <ul>
+            <li><span class="highlight">플로우셀 준비</span>: 고밀도 올리고뉴클레오타이드 어댑터</li>
+            <li><span class="highlight">DNA 결합</span>: 단일 분자 DNA가 플로우셀 표면에 결합</li>
+            <li><span class="highlight">브릿지 증폭</span>: PCR을 통해 수백만 개의 클론 클러스터 생성</li>
+            <li><span class="highlight">선형화</span>: 역방향 가닥 제거, 정방향 가닥만 시퀀싱</li>
+        </ul>
+
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+            <h4 style="color: #495057; margin-bottom: 15px;">🔬 Illumina 플로우셀 구조</h4>
+            <div style="background: #fff; padding: 15px; border-radius: 8px; border: 2px solid #ddd; display: inline-block;">
+                <img src="data/illumina_flowcell.png" alt="Illumina 플로우셀 고밀도 올리고뉴클레오타이드 어댑터" style="max-width: 100%; height: auto; border-radius: 4px;">
+                <div style="font-size: 12px; color: #666; margin-top: 10px; font-style: italic; line-height: 1.4;">
+                    Illumina 플로우셀 표면의 고밀도 올리고뉴클레오타이드 어댑터<br>
+                    수백만 개의 어댑터가 균등하게 분포되어 클러스터 형성의 기반 제공
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; text-align: left; background: #e9ecef; padding: 12px; border-radius: 6px;">
+                <h5 style="color: #495057; margin: 0 0 8px 0;">💡 핵심 특징:</h5>
+                <ul style="font-size: 14px; margin: 0; padding-left: 20px;">
+                    <li><span class="highlight">고밀도 배치</span>: cm²당 수백만 개의 어댑터 분포</li>
+                    <li><span class="highlight">균일한 간격</span>: 클러스터 간 간섭 최소화</li>
+                    <li><span class="highlight">화학적 결합</span>: 플로우셀 표면에 공유결합으로 고정</li>
+                    <li><span class="highlight">방향성 제어</span>: P5/P7 어댑터로 읽기 방향 결정</li>
+                </ul>
+            </div>
+
+            <div style="margin-top: 15px; padding: 12px; background: #d4edda; border-radius: 6px; border-left: 4px solid #28a745;">
+                <h5 style="color: #155724; margin: 0 0 8px 0;">📹 참고 동영상:</h5>
+                <div style="font-size: 14px; color: #155724; margin-bottom: 10px;">
+                    <strong>Illumina Sequencing Technology Animation</strong><br>
+                    <div style="font-size: 12px; margin-top: 5px; font-style: italic;">
+                        플로우셀 구조와 브릿지 증폭 과정의 3D 애니메이션 시연
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <iframe width="100%" height="315" src="https://www.youtube.com/embed/pfZp5Vgsbw0?si=YJbMwSinC5ISrob7" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="border-radius: 4px; border: 1px solid #28a745; max-width: 560px;"></iframe>
+                </div>
+            </div>
+        </div>
+
+        <h3>🧪 Sequencing by Synthesis (SBS)</h3>
+        <ol>
+            <li><strong>형광 표지 뉴클레오타이드 첨가</strong>: 각 염기마다 다른 형광 색소</li>
+            <li><strong>DNA 중합효소 반응</strong>: 한 번에 하나의 염기만 첨가</li>
+            <li><strong>이미징</strong>: 레이저 여기 및 형광 검출</li>
+            <li><strong>절단</strong>: 형광 그룹과 3'-OH 차단기 제거</li>
+            <li><strong>반복</strong>: 다음 사이클로 진행</li>
+        </ol>
+
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+            <h4 style="color: #0d47a1; margin-bottom: 10px;">📹 Sequencing by Synthesis 실제 과정:</h4>
+            <div style="font-size: 14px; color: #0d47a1; margin-bottom: 10px;">
+                <strong>Illumina SBS Technology Demonstration</strong><br>
+                <div style="font-size: 12px; margin-top: 5px; font-style: italic;">
+                    실시간 형광 신호 검출과 염기 판독 과정의 실제 영상
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <iframe width="100%" height="315" src="https://www.youtube.com/embed/fCd6B5HRaZ8?si=0wXMt2eBEDQIri3L" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="border-radius: 4px; border: 1px solid #2196f3; max-width: 560px;"></iframe>
+            </div>
+        </div>
+
+        <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3>📊 Illumina 플랫폼 비교</h3>
+            <table class="table" style="font-size: 14px;">
+                <thead>
+                    <tr>
+                        <th>플랫폼</th>
+                        <th>읽기 길이</th>
+                        <th>처리량</th>
+                        <th>실행 시간</th>
+                        <th>주요 용도</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>MiSeq</strong></td>
+                        <td>2×300bp</td>
+                        <td>15Gb</td>
+                        <td>4-56시간</td>
+                        <td>타겟 시퀀싱, 소규모 게놈</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NextSeq</strong></td>
+                        <td>2×150bp</td>
+                        <td>120Gb</td>
+                        <td>12-30시간</td>
+                        <td>RNA-seq, Exome</td>
+                    </tr>
+                    <tr>
+                        <td><strong>HiSeq</strong></td>
+                        <td>2×150bp</td>
+                        <td>1.5Tb</td>
+                        <td>1-6일</td>
+                        <td>WGS, 대규모 연구</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NovaSeq</strong></td>
+                        <td>2×150bp</td>
+                        <td>6Tb</td>
+                        <td>13-44시간</td>
+                        <td>인구집단 연구, 임상</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 6 / 21</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide05.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide07.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

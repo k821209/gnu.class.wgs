@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 기초 이론 - NGS Library Preparation</title>
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+<div class="slide-title">NGS 라이브러리 준비</div>
+    <div class="slide-content">
+        <h2>🧪 라이브러리 제작 과정</h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 20px 0;">
+            <div style="text-align: center; padding: 10px; background: #e8f5e8; border-radius: 6px;">
+                <div style="font-size: 20px; margin-bottom: 8px;">🧬 1. DNA 단편화</div>
+                <div style="font-size: 10px;">물리적/효소적</div>
+                <div style="margin-top: 10px; padding: 8px; background: #d4edda; border-radius: 4px; font-size: 10px; line-height: 1.3; text-align: left;">
+                    <strong>설명:</strong> 게놈 DNA를 시퀀싱 장비가 처리할 수 있는 특정 길이(예: 150bp ~ 수십 kb)로 자르는 과정입니다. 물리적 방법(초음파, 분쇄)과 효소적 방법(제한 효소, 트랜스포사제)이 있습니다.
+                </div>
+            </div>
+            
+            <div style="text-align: center; padding: 10px; background: #e3f2fd; border-radius: 6px;">
+                <div style="font-size: 20px; margin-bottom: 8px;">🎯 2. 크기 선별</div>
+                <div style="font-size: 10px;">젤/비드 정제</div>
+                <div style="margin-top: 10px; padding: 8px; background: #cce5ff; border-radius: 4px; font-size: 10px; line-height: 1.3; text-align: left;">
+                    <strong>설명:</strong> 라이브러리의 품질과 시퀀싱 효율을 높이기 위해 원하는 길이 범위의 DNA 단편만 선별하는 과정입니다. 주로 아가로스 젤 전기영동이나 자기 비드(magnetic beads)를 이용한 정제 방식을 사용합니다.
+                </div>
+            </div>
+            
+            <div style="text-align: center; padding: 10px; background: #fff3e0; border-radius: 6px;">
+                <div style="font-size: 20px; margin-bottom: 8px;">✂️ 3. 말단 수정</div>
+                <div style="font-size: 10px;">5' 인산화, 3' A-tail</div>
+                <div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-radius: 4px; font-size: 10px; line-height: 1.3; text-align: left;">
+                    <strong>설명:</strong> 단편화된 DNA의 양쪽 끝을 어댑터가 잘 붙을 수 있도록 특정 형태로 변형하는 과정입니다. 주로 5' 말단을 인산화하고, 3' 말단에 아데닌(A) 염기를 추가(A-tailing)하여 어댑터 결합 효율을 높입니다.
+                </div>
+            </div>
+            
+            <div style="text-align: center; padding: 10px; background: #fce4ec; border-radius: 6px;">
+                <div style="font-size: 20px; margin-bottom: 8px;">🔗 4. 어댑터 결합</div>
+                <div style="font-size: 10px;">플랫폼별 어댑터</div>
+                <div style="margin-top: 10px; padding: 8px; background: #f8d7da; border-radius: 4px; font-size: 10px; line-height: 1.3; text-align: left;">
+                    <strong>설명:</strong> 시퀀싱 플랫폼(Illumina, PacBio, Nanopore 등)에 특화된 짧은 DNA 서열(어댑터)을 단편화된 DNA의 양쪽 끝에 붙이는 과정입니다. 이 어댑터는 시퀀싱 장비의 플로우셀에 DNA를 고정하고, 시퀀싱 반응을 시작하며, 여러 샘플을 동시에 시퀀싱할 수 있도록 바코드(index) 역할을 합니다.
+                </div>
+            </div>
+            
+            <div style="text-align: center; padding: 10px; background: #f3e5f5; border-radius: 6px;">
+                <div style="font-size: 20px; margin-bottom: 8px;">⚡ 5. PCR 증폭</div>
+                <div style="font-size: 10px;">라이브러리 농축</div>
+                <div style="margin-top: 10px; padding: 8px; background: #e0cffc; border-radius: 4px; font-size: 10px; line-height: 1.3; text-align: left;">
+                    <strong>설명:</strong> 어댑터가 결합된 DNA 단편들을 PCR(중합효소 연쇄 반응)을 통해 증폭하여 시퀀싱에 필요한 충분한 양의 라이브러리를 확보하는 과정입니다. 이 단계에서 시퀀싱 장비의 클러스터 생성이나 나노포어 통과에 최적화된 농도를 맞춥니다.
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+            <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db;">
+                <h3 style="color: #2980b9; margin-top: 0;">🦠 메타게놈 라이브러리 준비의 특수성</h3>
+                <ul style="font-size: 13px; line-height: 1.6;">
+                    <li><strong>DNA 추출</strong>: 다양한 미생물(세균, 고세균, 진균, 바이러스)의 세포벽/막 특성을 고려한 범용 또는 맞춤형 추출 프로토콜이 중요합니다. (예: Gram-positive 세균은 세포벽이 두꺼워 물리적 파쇄가 필요할 수 있음)</li>
+                    <li><strong>숙주 DNA 제거</strong>: 환경 샘플이나 임상 샘플(예: 장내 미생물)의 경우, 숙주(인간, 식물 등)의 DNA가 대부분을 차지하므로, 미생물 DNA를 효과적으로 농축하기 위한 숙주 DNA 제거 단계가 필수적입니다. (예: DNase 처리, 숙주 세포 용해 후 미생물 분리 등)</li>
+                    <li><strong>PCR 증폭 (16S rRNA 유전자)</strong>: 미생물 군집 분석 시, 16S rRNA 유전자의 특정 가변 영역(V3-V4 등)을 PCR로 증폭하여 시퀀싱합니다. 이 경우, 범용 프라이머를 사용하여 다양한 미생물을 동시에 증폭합니다.</li>
+                    <li><strong>샷건 메타게놈 (Shotgun Metagenomics)</strong>: 전체 미생물 군집의 모든 DNA를 시퀀싱하는 방법으로, 유전자 기능 분석 및 종 수준 이상의 해상도를 제공합니다. 이 경우, 일반적인 WGS 라이브러리 준비와 유사하게 DNA 단편화 후 어댑터를 붙여 시퀀싱합니다.</li>
+                </ul>
+            </div>
+
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #27ae60;">
+                <h3 style="color: #229954; margin-top: 0;">🌱 식물(해양식물) 게놈 라이브러리 준비의 특수성</h3>
+                <ul style="font-size: 13px; line-height: 1.6;">
+                    <li><strong>다당류 및 2차 대사산물 제거</strong>: 식물, 특히 해양식물은 다량의 다당류(polysaccharides)와 폴리페놀(polyphenols) 등 2차 대사산물을 함유하는 경우가 많습니다. 이 물질들은 DNA 추출 시 함께 추출되어 시퀀싱 반응을 저해하거나 라이브러리 품질을 저하시킬 수 있으므로, 이를 효과적으로 제거하는 특수 추출 프로토콜(예: CTAB 기반 방법 변형, 추가 정제 단계)이 필수적입니다.</li>
+                    <li><strong>엽록체/미토콘드리아 DNA 오염</strong>: 식물 세포는 핵 DNA 외에 엽록체(chloroplast)와 미토콘드리아(mitochondria) DNA를 다량 포함합니다. 이들 소기관 DNA는 게놈 시퀀싱 시 원치 않는 오염원으로 작용하여 시퀀싱 자원을 낭비하고 분석을 복잡하게 만들 수 있습니다. 따라서, 핵 DNA만 선택적으로 농축하거나, 소기관 DNA를 제거하는 방법(예: 밀도 구배 원심분리, 특정 효소 처리)을 고려할 수 있습니다.</li>
+                    <li><strong>게놈 크기 및 반복서열</strong>: 많은 식물, 특히 해양식물은 매우 크고 복잡한 게놈을 가지며, 반복서열(repetitive sequences)의 비율이 높습니다. 이는 DNA 단편화 및 라이브러리 제작 과정에서 균일한 커버리지를 얻기 어렵게 만들 수 있습니다. 따라서, 더 긴 insert size의 라이브러리(long-read 시퀀싱에 유리)를 제작하거나, 반복서열이 적은 영역을 타겟팅하는 전략이 필요할 수 있습니다.</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>📏 Insert Size 최적화</h3>
+        <table class="table" style="font-size: 14px;">
+            <thead>
+                <tr>
+                    <th>응용 분야</th>
+                    <th>권장 Insert Size</th>
+                    <th>이유</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>WGS (human)</td>
+                    <td>350-500bp</td>
+                    <td>균일한 커버리지, 구조변이 탐지</td>
+                </tr>
+                <tr>
+                    <td>Exome sequencing</td>
+                    <td>200-300bp</td>
+                    <td>엑손 크기 고려, 타겟 효율</td>
+                </tr>
+                <tr>
+                    <td>RNA-seq</td>
+                    <td>200-500bp</td>
+                    <td>스플라이싱 접합부 검출</td>
+                </tr>
+                <tr>
+                    <td>ChIP-seq</td>
+                    <td>200-300bp</td>
+                    <td>단백질 결합 영역 해상도</td>
+                </tr>
+                <tr>
+                    <td>메타게놈 (Shotgun)</td>
+                    <td>400-800bp (Short-read)<br>10-20kb (Long-read)</td>
+                    <td>미생물 종 다양성 및 유전자 연결성 분석. Long-read는 복잡한 군집에서 종 수준의 조립 및 유전자 클러스터링에 유리.</td>
+                </tr>
+                <tr>
+                    <td>식물(해양식물)게놈</td>
+                    <td>5-10kb (Short-read)<br>20-50kb (Long-read)</td>
+                    <td>매우 크고 복잡한 게놈, 높은 반복서열 비율, 이형접합성 등으로 인해 긴 읽기 길이가 게놈 조립 및 구조변이, haplotype 분석에 필수적입니다.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>🔬 품질 관리 체크포인트</h3>
+        <ul>
+            <li><span class="highlight">DNA 품질</span>: 260/280 ratio > 1.8, 260/230 ratio > 2.0</li>
+            <li><span class="highlight">단편화 확인</span>: Bioanalyzer/TapeStation으로 크기 분포 확인</li>
+            <li><span class="highlight">어댑터 효율</span>: qPCR로 라이브러리 농도 측정</li>
+            <li><span class="highlight">최종 검증</span>: 시퀀싱 전 라이브러리 몰농도 계산</li>
+        </ul>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 12 / 21</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide11.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide13.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

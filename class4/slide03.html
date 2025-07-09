@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>품질 관리 - FastQC, Trimmomatic을 이용한 전처리</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #e67e22; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #e67e22; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 14px; white-space: pre-wrap; border: 1px solid #444; position: relative; }
+        .code-block-container { position: relative; }
+        .copy-button { position: absolute; top: 10px; right: 10px; background: #444; color: #f8f8f2; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; opacity: 0.7; transition: opacity 0.2s; }
+        .copy-button:hover { opacity: 1; background: #555; }
+        .copy-button.copied { background: #27ae60; color: white; }
+        .copy-button.copied:after { content: " ✓"; }
+        .code-block.python { /* Python code blocks */ }
+        .code-block.bash { /* Bash code blocks */ }
+        
+        /* Syntax highlighting color classes */
+        .comment { color: #75715e; } /* Comments */
+        .keyword { color: #f92672; } /* Keywords */
+        .function { color: #a6e22e; } /* Function names */
+        .string { color: #e6db74; } /* Strings */
+        .number { color: #ae81ff; } /* Numbers */
+        .param { color: #fd971f; } /* Parameters */
+        .variable { color: #f8f8f2; } /* Variables */
+        .builtin { color: #a6e22e; } /* Built-in functions */
+        .operator { color: #f92672; } /* Operators */
+        .shebang { color: #75715e; } /* Shebang */
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #e67e22; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #d35400; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #3498db; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #2980b9; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #e67e22; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .setup-steps { background: #e8f4fd; border-left: 4px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .quality-chart { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .quality-good { background: #d4edda; border-left: 4px solid #28a745; }
+        .quality-warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .quality-bad { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .workflow-step { background: #ffffff; border: 2px solid #e67e22; border-radius: 8px; padding: 15px; margin: 10px 0; position: relative; }
+        .workflow-step::before { content: "→"; position: absolute; right: -15px; top: 50%; transform: translateY(-50%); font-size: 24px; color: #e67e22; }
+        .workflow-step:last-child::before { display: none; }
+        .tool-comparison { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 20px 0; }
+        .tool-item { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #e67e22; }
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">🔧 품질 관리</div>
+    <div class="slide-content">
+        <h2>📊 NGS 데이터 품질 평가의 중요성</h2>
+        <p>Raw 시퀀싱 데이터는 다양한 오류와 편향을 포함할 수 있습니다. 정확한 분석을 위해서는 데이터 품질을 평가하고 필요시 전처리가 필수입니다.</p>
+
+        <h3>🎯 품질 관리 목표</h3>
+        <div class="comparison-table">
+            <div class="comparison-item" style="border-left-color: #28a745;">
+                <h4><i class="fas fa-check-circle"></i> 주요 목표</h4>
+                <ul>
+                    <li><strong>낮은 품질 염기 제거:</strong> Phred score < 20인 염기</li>
+                    <li><strong>어댑터 시퀀스 제거:</strong> 라이브러리 준비 과정의 인공 서열</li>
+                    <li><strong>오염 서열 제거:</strong> 다른 생물종 또는 벡터 서열</li>
+                    <li><strong>길이 필터링:</strong> 너무 짧은 리드 제거</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #dc3545;">
+                <h4><i class="fas fa-exclamation-triangle"></i> 주요 문제점</h4>
+                <ul>
+                    <li><strong>품질 저하:</strong> 시퀀싱 후반부 품질 감소</li>
+                    <li><strong>어댑터 오염:</strong> 짧은 insert size로 인한 어댑터 읽기</li>
+                    <li><strong>PCR 중복:</strong> 라이브러리 증폭 과정의 편향</li>
+                    <li><strong>GC 편향:</strong> GC 함량에 따른 커버리지 편향</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>🔍 FastQC를 이용한 품질 평가</h2>
+        <p>FastQC는 NGS 데이터의 품질을 종합적으로 평가하는 표준 도구입니다.</p>
+
+        <h3>📈 주요 품질 지표</h3>
+        <div class="tool-comparison">
+            <div class="tool-item quality-good">
+                <h4><i class="fas fa-thumbs-up"></i> 좋은 품질</h4>
+                <ul>
+                    <li><strong>Per base quality:</strong> 평균 Q30 이상</li>
+                    <li><strong>Per sequence quality:</strong> 대부분 Q30 이상</li>
+                    <li><strong>GC content:</strong> 이론값과 유사</li>
+                    <li><strong>Adapter content:</strong> 0% 또는 매우 낮음</li>
+                </ul>
+            </div>
+            
+            <div class="tool-item quality-warning">
+                <h4><i class="fas fa-exclamation-circle"></i> 주의 필요</h4>
+                <ul>
+                    <li><strong>Per base quality:</strong> 후반부 Q20-30</li>
+                    <li><strong>GC content:</strong> 약간의 편향</li>
+                    <li><strong>Sequence duplication:</strong> 중간 수준</li>
+                    <li><strong>Overrepresented seq:</strong> 소량 검출</li>
+                </ul>
+            </div>
+            
+            <div class="tool-item quality-bad">
+                <h4><i class="fas fa-thumbs-down"></i> 나쁜 품질</h4>
+                <ul>
+                    <li><strong>Per base quality:</strong> Q20 미만</li>
+                    <li><strong>Adapter content:</strong> 높은 비율</li>
+                    <li><strong>Sequence duplication:</strong> 매우 높음</li>
+                    <li><strong>Per tile quality:</strong> 타일별 편향</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>💻 FastQC 실행</h3>
+        <div class="setup-steps">
+            <h4><i class="fas fa-download"></i> 1단계: FastQC 설치</h4>
+            
+            <div class="code-block-container">
+                <div class="code-block bash" id="fastqc-install">
+# FastQC 설치 (conda 사용)
+conda install -c bioconda fastqc
+
+# 또는 직접 다운로드
+wget https://www.bioinformatics.babraham.ac.uk/projects/fastqc/fastqc_v0.12.1.zip
+unzip fastqc_v0.12.1.zip
+chmod +x FastQC/fastqc
+</div>
+            </div>
+        </div>
+
+        <div class="setup-steps">
+            <h4><i class="fas fa-play"></i> 2단계: FastQC 실행</h4>
+            
+            <div class="code-block-container">
+                <div class="code-block bash" id="fastqc-run">
+# 단일 FASTQ 파일 분석
+fastqc sample_R1.fastq.gz
+
+# 여러 파일 동시 분석
+fastqc *.fastq.gz
+
+# 출력 디렉토리 지정
+fastqc -o output_dir/ sample_R1.fastq.gz sample_R2.fastq.gz
+
+# 스레드 수 지정 (병렬 처리)
+fastqc -t 4 *.fastq.gz
+</div>
+            </div>
+        </div>
+
+
+        <h2>✂️ Trimmomatic을 이용한 전처리</h2>
+        <p>Trimmomatic은 어댑터 제거, 품질 필터링, 길이 필터링을 수행하는 강력한 도구입니다.</p>
+
+        <h3>🛠️ 주요 기능</h3>
+        <div class="comparison-table">
+            <div class="comparison-item" style="border-left-color: #f39c12;">
+                <h4><i class="fas fa-cut"></i> 트리밍 기능</h4>
+                <ul>
+                    <li><strong>ILLUMINACLIP:</strong> 어댑터 시퀀스 제거</li>
+                    <li><strong>SLIDINGWINDOW:</strong> 슬라이딩 윈도우 품질 필터링</li>
+                    <li><strong>LEADING/TRAILING:</strong> 앞/뒤 낮은 품질 염기 제거</li>
+                    <li><strong>MINLEN:</strong> 최소 길이 필터링</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #9b59b6;">
+                <h4><i class="fas fa-cogs"></i> 처리 옵션</h4>
+                <ul>
+                    <li><strong>PE 모드:</strong> Paired-end 리드 처리</li>
+                    <li><strong>SE 모드:</strong> Single-end 리드 처리</li>
+                    <li><strong>멀티스레딩:</strong> 병렬 처리 지원</li>
+                    <li><strong>통계 보고:</strong> 처리 결과 요약</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>🔧 Trimmomatic 필터링 매개변수 상세 설명</h3>
+        <div class="setup-steps" style="background: #fff3cd; border-left-color: #ffc107;">
+            <h4><i class="fas fa-info-circle"></i> 필터링 옵션 완벽 가이드</h4>
+            
+            <div class="tool-comparison" style="grid-template-columns: 1fr;">
+                <div class="tool-item" style="border-left-color: #dc3545; margin-bottom: 15px;">
+                    <h4><i class="fas fa-cut"></i> ILLUMINACLIP 상세 매개변수</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; margin: 10px 0;">
+ILLUMINACLIP:&lt;fastaWithAdaptersEtc&gt;:&lt;seed mismatches&gt;:&lt;palindrome clip threshold&gt;:&lt;simple clip threshold&gt;[:&lt;minAdapterLength&gt;][:&lt;keepBothReads&gt;]
+                    </div>
+                    <ul style="font-size: 14px;">
+                        <li><strong>fastaWithAdaptersEtc:</strong> 어댑터 서열이 포함된 FASTA 파일</li>
+                        <li><strong>seed mismatches:</strong> 초기 매칭에서 허용할 최대 불일치 수 (보통 2)</li>
+                        <li><strong>palindrome clip threshold:</strong> 팰린드롬 모드 임계값 (30 권장)</li>
+                        <li><strong>simple clip threshold:</strong> 단순 모드 임계값 (10 권장)</li>
+                        <li><strong>minAdapterLength:</strong> 최소 어댑터 길이 (옵션, 기본값 8bp)</li>
+                        <li><strong>keepBothReads:</strong> true시 한쪽만 트리밍되어도 페어 유지</li>
+                    </ul>
+                    
+                    <div style="background: #e8f4fd; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px; border-left: 3px solid #3498db;">
+                        <strong>💡 팰린드롬 vs 단순 모드:</strong><br>
+                        • <strong>팰린드롬 모드:</strong> PE 리드에서 어댑터가 서로 겹치는 경우 (insert size < read length)<br>
+                        • <strong>단순 모드:</strong> 어댑터가 리드 끝에 단순히 붙어있는 경우
+                    </div>
+                </div>
+                
+                <div class="tool-item" style="border-left-color: #28a745; margin-bottom: 15px;">
+                    <h4><i class="fas fa-window-maximize"></i> SLIDINGWINDOW 상세 매개변수</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; margin: 10px 0;">
+SLIDINGWINDOW:&lt;windowSize&gt;:&lt;requiredQuality&gt;
+                    </div>
+                    <ul style="font-size: 14px;">
+                        <li><strong>windowSize:</strong> 슬라이딩 윈도우 크기 (bp 단위, 보통 4-5)</li>
+                        <li><strong>requiredQuality:</strong> 윈도우 내 평균 품질 임계값 (보통 15-20)</li>
+                    </ul>
+                    
+                    <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px; border-left: 3px solid #6c757d;">
+                        <strong>🔍 작동 원리:</strong><br>
+                        리드를 5'→3' 방향으로 스캔하면서 지정된 윈도우 크기만큼의 염기들의 평균 품질을 계산합니다.<br>
+                        평균 품질이 임계값 미만이면 해당 지점에서 리드를 자릅니다.
+                    </div>
+                    
+                    <div style="background: #e8f4fd; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px;">
+                        <strong>📊 권장 설정:</strong><br>
+                        • <code>SLIDINGWINDOW:4:15</code> - 일반적인 Illumina 데이터<br>
+                        • <code>SLIDINGWINDOW:5:20</code> - 높은 품질 요구시<br>
+                        • <code>SLIDINGWINDOW:3:12</code> - 낮은 품질 데이터 구제시
+                    </div>
+                </div>
+                
+                <div class="tool-item" style="border-left-color: #17a2b8; margin-bottom: 15px;">
+                    <h4><i class="fas fa-arrows-alt-h"></i> LEADING/TRAILING 상세 매개변수</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; margin: 10px 0;">
+LEADING:&lt;quality&gt;
+TRAILING:&lt;quality&gt;
+                    </div>
+                    <ul style="font-size: 14px;">
+                        <li><strong>LEADING:</strong> 리드 시작부분에서 지정된 품질 미만인 염기들을 제거</li>
+                        <li><strong>TRAILING:</strong> 리드 끝부분에서 지정된 품질 미만인 염기들을 제거</li>
+                        <li><strong>quality:</strong> 품질 임계값 (Phred score, 보통 3-5)</li>
+                    </ul>
+                    
+                    <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px;">
+                        <strong>⚡ 실행 순서:</strong> LEADING → SLIDINGWINDOW → TRAILING → MINLEN
+                    </div>
+                </div>
+                
+                <div class="tool-item" style="border-left-color: #fd7e14; margin-bottom: 15px;">
+                    <h4><i class="fas fa-ruler"></i> MINLEN/MAXLEN 상세 매개변수</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; margin: 10px 0;">
+MINLEN:&lt;length&gt;
+MAXLEN:&lt;length&gt;
+                    </div>
+                    <ul style="font-size: 14px;">
+                        <li><strong>MINLEN:</strong> 최소 허용 리드 길이 (bp 단위)</li>
+                        <li><strong>MAXLEN:</strong> 최대 허용 리드 길이 (bp 단위, 선택사항)</li>
+                    </ul>
+                    
+                    <div style="background: #e8f4fd; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 12px;">
+                        <strong>📏 길이 설정 가이드라인:</strong><br>
+                        • <strong>150bp 리드:</strong> MINLEN:36 (원래 길이의 24%)<br>
+                        • <strong>100bp 리드:</strong> MINLEN:25 (원래 길이의 25%)<br>
+                        • <strong>75bp 리드:</strong> MINLEN:20 (원래 길이의 27%)
+                    </div>
+                </div>
+                
+                <div class="tool-item" style="border-left-color: #6f42c1; margin-bottom: 15px;">
+                    <h4><i class="fas fa-layer-group"></i> 고급 필터링 옵션</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 13px; margin: 10px 0;">
+HEADCROP:&lt;length&gt;
+CROP:&lt;length&gt;
+AVGQUAL:&lt;quality&gt;
+MAXINFO:&lt;targetLength&gt;:&lt;strictness&gt;
+                    </div>
+                    <ul style="font-size: 14px;">
+                        <li><strong>HEADCROP:</strong> 리드 시작부분에서 지정된 길이만큼 무조건 제거</li>
+                        <li><strong>CROP:</strong> 리드를 지정된 길이로 잘라냄</li>
+                        <li><strong>AVGQUAL:</strong> 전체 리드의 평균 품질이 임계값 미만이면 제거</li>
+                        <li><strong>MAXINFO:</strong> 정보량 기반 적응적 품질 트리밍</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h3>🎯 실무 필터링 시나리오</h3>
+        <div class="setup-steps" style="background: #f8f9fa; border-left-color: #28a745;">
+            <h4><i class="fas fa-scenarios"></i> 데이터 특성에 따른 최적 필터링 전략</h4>
+            
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #28a745;">
+                    <h4><i class="fas fa-leaf"></i> 고품질 식물 게놈 (콩 예시)</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin: 10px 0;">
+trimmomatic PE -threads 4 \
+  sample_R1.fastq.gz sample_R2.fastq.gz \
+  output_R1_paired.fq.gz output_R1_unpaired.fq.gz \
+  output_R2_paired.fq.gz output_R2_unpaired.fq.gz \
+  ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 \
+  LEADING:3 TRAILING:3 \
+  SLIDINGWINDOW:4:15 \
+  MINLEN:36
+                    </div>
+                    <ul style="font-size: 13px;">
+                        <li><strong>특징:</strong> 일반적인 Illumina 150bp PE 데이터</li>
+                        <li><strong>목표:</strong> 균형잡힌 품질과 수율</li>
+                        <li><strong>예상 수율:</strong> 85-95%</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #dc3545;">
+                    <h4><i class="fas fa-exclamation-triangle"></i> 저품질 데이터 구제</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin: 10px 0;">
+trimmomatic PE -threads 4 \
+  poor_quality_R1.fastq.gz poor_quality_R2.fastq.gz \
+  rescued_R1_paired.fq.gz rescued_R1_unpaired.fq.gz \
+  rescued_R2_paired.fq.gz rescued_R2_unpaired.fq.gz \
+  ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:2:true \
+  LEADING:5 TRAILING:5 \
+  SLIDINGWINDOW:3:12 \
+  AVGQUAL:15 \
+  MINLEN:30
+                    </div>
+                    <ul style="font-size: 13px;">
+                        <li><strong>특징:</strong> 품질이 전반적으로 낮은 데이터</li>
+                        <li><strong>목표:</strong> 최대한 많은 데이터 구제</li>
+                        <li><strong>예상 수율:</strong> 60-80%</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #f39c12;">
+                    <h4><i class="fas fa-microscope"></i> 고정밀 분석용 (변이 검출)</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin: 10px 0;">
+trimmomatic PE -threads 4 \
+  sample_R1.fastq.gz sample_R2.fastq.gz \
+  strict_R1_paired.fq.gz strict_R1_unpaired.fq.gz \
+  strict_R2_paired.fq.gz strict_R2_unpaired.fq.gz \
+  ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 \
+  LEADING:5 TRAILING:5 \
+  SLIDINGWINDOW:5:20 \
+  AVGQUAL:25 \
+  MINLEN:50
+                    </div>
+                    <ul style="font-size: 13px;">
+                        <li><strong>특징:</strong> 엄격한 품질 기준 적용</li>
+                        <li><strong>목표:</strong> 최고 품질 데이터만 선별</li>
+                        <li><strong>예상 수율:</strong> 70-85%</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #17a2b8;">
+                    <h4><i class="fas fa-dna"></i> 오래된 DNA 샘플</h4>
+                    <div style="background: #1e1e1e; color: #f8f8f2; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin: 10px 0;">
+trimmomatic PE -threads 4 \
+  degraded_R1.fastq.gz degraded_R2.fastq.gz \
+  recovered_R1_paired.fq.gz recovered_R1_unpaired.fq.gz \
+  recovered_R2_paired.fq.gz recovered_R2_unpaired.fq.gz \
+  ILLUMINACLIP:TruSeq3-PE.fa:2:30:10:2:true \
+  HEADCROP:5 \
+  LEADING:3 TRAILING:3 \
+  SLIDINGWINDOW:4:12 \
+  MINLEN:25
+                    </div>
+                    <ul style="font-size: 13px;">
+                        <li><strong>특징:</strong> DNA 분해로 인한 5' 말단 손상</li>
+                        <li><strong>목표:</strong> 손상된 부분 제거 후 활용</li>
+                        <li><strong>예상 수율:</strong> 50-70%</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h3>📊 필터링 결과 해석 가이드</h3>
+        <div class="setup-steps" style="background: #e8f4fd; border-left-color: #3498db;">
+            <h4><i class="fas fa-chart-bar"></i> Trimmomatic 출력 통계 해석</h4>
+            
+            <div style="background: #1e1e1e; color: #f8f8f2; padding: 12px; border-radius: 6px; font-family: monospace; font-size: 12px; margin: 15px 0;">
+Input Read Pairs: 1000000 Both Surviving: 876543 (87.65%) Forward Only Surviving: 45678 (4.57%) Reverse Only Surviving: 23456 (2.35%) Dropped: 54323 (5.43%)
+            </div>
+            
+            <div class="tool-comparison" style="grid-template-columns: 1fr 1fr;">
+                <div class="tool-item" style="border-left-color: #28a745;">
+                    <h4><i class="fas fa-thumbs-up"></i> 좋은 결과 지표</h4>
+                    <ul style="font-size: 13px;">
+                        <li><strong>Both Surviving:</strong> 85% 이상</li>
+                        <li><strong>Total Surviving:</strong> 90% 이상</li>
+                        <li><strong>Dropped:</strong> 10% 이하</li>
+                        <li><strong>Forward/Reverse Only:</strong> 각각 5% 이하</li>
+                    </ul>
+                </div>
+                
+                <div class="tool-item" style="border-left-color: #dc3545;">
+                    <h4><i class="fas fa-exclamation-triangle"></i> 문제 징후</h4>
+                    <ul style="font-size: 13px;">
+                        <li><strong>Both Surviving:</strong> 70% 미만</li>
+                        <li><strong>Dropped:</strong> 20% 이상</li>
+                        <li><strong>Forward/Reverse Only:</strong> 각각 10% 이상</li>
+                        <li><strong>원인:</strong> 과도한 필터링 또는 저품질 데이터</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 12px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #ffc107;">
+                <h5 style="color: #856404; margin: 0 0 8px 0;"><i class="fas fa-lightbulb"></i> 결과 최적화 팁</h5>
+                <ul style="color: #856404; margin: 0; font-size: 13px; line-height: 1.4;">
+                    <li><strong>Both Surviving이 낮은 경우:</strong> SLIDINGWINDOW나 MINLEN 조건 완화</li>
+                    <li><strong>Forward/Reverse Only가 높은 경우:</strong> 어댑터 제거 설정 점검</li>
+                    <li><strong>Dropped이 높은 경우:</strong> AVGQUAL이나 MINLEN 임계값 낮추기</li>
+                    <li><strong>어댑터 오염이 심한 경우:</strong> minAdapterLength를 6으로 낮추기</li>
+                </ul>
+            </div>
+        </div>
+
+        <h3>💻 Trimmomatic 실행</h3>
+        <div class="setup-steps">
+            <h4><i class="fas fa-download"></i> 1단계: Trimmomatic 설치</h4>
+            
+            <div class="code-block-container">
+                <div class="code-block bash" id="trimmomatic-install">
+# Trimmomatic 설치 (conda 사용)
+conda install -c bioconda trimmomatic
+
+# 어댑터 파일 확인
+ls $CONDA_PREFIX/share/trimmomatic/adapters/
+
+# 주요 어댑터 파일들:
+# TruSeq3-PE.fa : TruSeq3 Paired-End 어댑터
+# TruSeq3-SE.fa : TruSeq3 Single-End 어댑터
+# NexteraPE-PE.fa : Nextera Paired-End 어댑터
+</div>
+            </div>
+        </div>
+
+        <div class="setup-steps" style="background: #f8f9fa; border-left-color: #6c757d;">
+            <h4><i class="fas fa-file-alt"></i> TruSeq3-PE.fa 어댑터 파일 내용</h4>
+            <p>Trimmomatic에서 사용되는 TruSeq3 Paired-End 어댑터 서열 파일의 내용입니다:</p>
+            
+            <div class="code-block-container">
+                <div class="code-block" id="truseq3-pe-fasta">
+>PrefixPE/1
+TACACTCTTTCCCTACACGACGCTCTTCCGATCT
+>PrefixPE/2
+GTGACTGGAGTTCAGACGTGTGCTCTTCCGATCT
+</div>
+            </div>
+            
+            <div style="background: #e8f4fd; padding: 15px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #3498db;">
+                <h5 style="color: #1976d2; margin: 0 0 10px 0;"><i class="fas fa-info-circle"></i> 어댑터 서열 설명</h5>
+                <ul style="color: #1976d2; margin: 0; font-size: 14px;">
+                    <li><strong>PrefixPE/1:</strong> Read 1용 어댑터 프리픽스 (5' → 3' 방향)</li>
+                    <li><strong>PrefixPE/2:</strong> Read 2용 어댑터 프리픽스 (5' → 3' 방향)</li>
+                    <li><strong>팰린드롬 모드:</strong> PE 리드가 짧은 insert로 겹칠 때 사용</li>
+                    <li><strong>단순 모드:</strong> 리드 끝에 어댑터가 붙어있을 때 사용</li>
+                    <li><strong>서열 길이:</strong> 각각 33bp의 어댑터 서열</li>
+                </ul>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 12px; margin: 15px 0; border-radius: 6px; border-left: 4px solid #ffc107;">
+                <h5 style="color: #856404; margin: 0 0 8px 0;"><i class="fas fa-lightbulb"></i> 실무 활용 팁</h5>
+                <ul style="color: #856404; margin: 0; font-size: 13px;">
+                    <li><strong>어댑터 검출:</strong> Trimmomatic은 이 두 서열을 참조하여 어댑터를 찾아 제거</li>
+                    <li><strong>팰린드롬 모드:</strong> 짧은 insert size로 PE 리드가 겹칠 때 자동 적용</li>
+                    <li><strong>단순 모드:</strong> 일반적인 어댑터 제거 시 사용</li>
+                    <li><strong>커스텀 어댑터:</strong> 다른 라이브러리 키트 사용 시 해당 어댑터 서열로 교체</li>
+                    <li><strong>GitHub 소스:</strong> <a href="https://github.com/usadellab/Trimmomatic/blob/main/adapters/TruSeq3-PE.fa" target="_blank" style="color: #856404;">공식 레포지토리</a>에서 최신 버전 확인</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="setup-steps">
+            <h4><i class="fas fa-play"></i> 2단계: Paired-End 처리</h4>
+            
+            <div class="code-block-container">
+                <div class="code-block bash" id="trimmomatic-pe">
+# Paired-End FASTQ 파일 처리
+trimmomatic PE -threads 4 \
+    ERR3184150_1.fastq.gz ERR3184150_2.fastq.gz \
+    ERR3184150_1_paired.fastq.gz ERR3184150_1_unpaired.fastq.gz \
+    ERR3184150_2_paired.fastq.gz ERR3184150_2_unpaired.fastq.gz \
+    ILLUMINACLIP:TruSeq3-PE.fa:2:30:10 \
+    LEADING:3 \
+    TRAILING:3 \
+    SLIDINGWINDOW:4:15 \
+    MINLEN:36
+
+# 매개변수 설명:
+# ILLUMINACLIP:TruSeq3-PE.fa:2:30:10
+#   - 어댑터 파일:seed_mismatches:palindrome_clip_threshold:simple_clip_threshold
+# LEADING:3 - 앞쪽에서 Q3 미만 염기 제거
+# TRAILING:3 - 뒤쪽에서 Q3 미만 염기 제거  
+# SLIDINGWINDOW:4:15 - 4bp 윈도우에서 평균 Q15 미만 제거
+# MINLEN:36 - 36bp 미만 리드 제거
+</div>
+            </div>
+        </div>
+
+
+        <h2>📊 품질 관리 워크플로우</h2>
+        <p>효율적인 품질 관리를 위한 단계별 워크플로우입니다.</p>
+
+        <div class="workflow-step">
+            <h4><i class="fas fa-file-download"></i> 1. 원본 데이터 확인</h4>
+            <p>FASTQ 파일 무결성 검사 및 기본 정보 확인</p>
+        </div>
+
+        <div class="workflow-step">
+            <h4><i class="fas fa-chart-line"></i> 2. FastQC 품질 평가</h4>
+            <p>원본 데이터의 품질 지표 분석 및 문제점 식별</p>
+        </div>
+
+        <div class="workflow-step">
+            <h4><i class="fas fa-cut"></i> 3. Trimmomatic 전처리</h4>
+            <p>어댑터 제거, 품질 필터링, 길이 필터링 수행</p>
+        </div>
+
+        <div class="workflow-step">
+            <h4><i class="fas fa-check-circle"></i> 4. 처리 후 품질 검사</h4>
+            <p>전처리된 데이터에 대한 FastQC 재분석</p>
+        </div>
+
+        <div class="workflow-step">
+            <h4><i class="fas fa-arrow-right"></i> 5. 다음 단계 진행</h4>
+            <p>품질이 확보된 데이터로 게놈 정렬 단계 진행</p>
+        </div>
+
+        <h3>🎯 품질 관리 체크포인트</h3>
+        <div class="setup-steps" style="background: #f8f9fa; border-left-color: #28a745;">
+            <h4><i class="fas fa-clipboard-check"></i> 최종 확인 사항</h4>
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #28a745;">
+                    <h4><i class="fas fa-thumbs-up"></i> 처리 전 vs 후</h4>
+                    <ul>
+                        <li><strong>평균 품질:</strong> Q30 이상 유지</li>
+                        <li><strong>어댑터 함량:</strong> 0% 또는 미검출</li>
+                        <li><strong>리드 길이:</strong> 일정한 분포</li>
+                        <li><strong>데이터 손실:</strong> 20% 이하</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #17a2b8;">
+                    <h4><i class="fas fa-chart-bar"></i> 통계 확인</h4>
+                    <ul>
+                        <li><strong>총 리드 수:</strong> 분석에 충분한 양</li>
+                        <li><strong>페어링 비율:</strong> 90% 이상</li>
+                        <li><strong>GC 함량:</strong> 정상 범위</li>
+                        <li><strong>중복도:</strong> 허용 범위 내</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 3 / 8</div>
+
+<script>
+    // Syntax highlighting function
+    function highlightCode() {
+        const codeBlocks = document.querySelectorAll('.code-block');
+        
+        codeBlocks.forEach(block => {
+            const code = block.textContent;
+            const language = block.classList.contains('python') ? 'python' : 
+                           block.classList.contains('bash') ? 'bash' : 'python'; // default to python
+            
+            const highlightedCode = highlightSyntax(code, language);
+            block.innerHTML = highlightedCode;
+            
+            // Add copy button
+            addCopyButton(block, code);
+        });
+    }
+    
+    // Add copy button to code block
+    function addCopyButton(codeBlock, originalCode) {
+        // Check if copy button already exists
+        const container = codeBlock.parentElement;
+        if (container && container.querySelector('.copy-button')) {
+            return; // Copy button already exists
+        }
+        
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.title = 'Copy code to clipboard';
+        
+        copyButton.addEventListener('click', function() {
+            copyToClipboard(originalCode, copyButton);
+        });
+        
+        // Append to container if it exists, otherwise to code block
+        if (container && container.classList.contains('code-block-container')) {
+            container.appendChild(copyButton);
+        } else {
+            codeBlock.style.position = 'relative'; // Ensure positioning context
+            codeBlock.appendChild(copyButton);
+        }
+    }
+    
+    // Copy text to clipboard
+    function copyToClipboard(text, button) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern approach
+            navigator.clipboard.writeText(text).then(function() {
+                showCopySuccess(button);
+            }).catch(function() {
+                fallbackCopyToClipboard(text, button);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyToClipboard(text, button);
+        }
+    }
+    
+    // Fallback copy method
+    function fallbackCopyToClipboard(text, button) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showCopySuccess(button);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+        
+        document.body.removeChild(textArea);
+    }
+    
+    // Show copy success feedback
+    function showCopySuccess(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(function() {
+            button.textContent = originalText;
+            button.classList.remove('copied');
+        }, 2000);
+    }
+    
+    function highlightSyntax(code, language) {
+        if (language === 'python') {
+            return highlightPython(code);
+        } else if (language === 'bash') {
+            return highlightBash(code);
+        }
+        return code;
+    }
+    
+    function highlightPython(code) {
+        let highlighted = code;
+        
+        // 1. Highlight strings first
+        highlighted = highlighted.replace(/"[^"]*"/g, '<span class="string">$&</span>');
+        highlighted = highlighted.replace(/'[^']*'/g, '<span class="string">$&</span>');
+        
+        // 2. Highlight comments
+        highlighted = highlighted.replace(/#.*$/gm, '<span class="comment">$&</span>');
+        
+        // 3. Highlight keywords
+        const keywords = ['import', 'from', 'def', 'if', 'else', 'elif', 'for', 'while', 'try', 'except', 'with', 'as', 'return', 'and', 'or', 'not', 'in', 'is', 'True', 'False', 'None'];
+        keywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+        });
+        
+        // 4. Highlight built-in functions
+        const builtins = ['print', 'len', 'open', 'range', 'enumerate', 'gzip', 'os', 'plt', 'np', 'Counter', 'Path', 'subprocess', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'zip', 'sorted', 'sum', 'max', 'min', 'time'];
+        builtins.forEach(builtin => {
+            const regex = new RegExp(`\\b${builtin}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="builtin">${builtin}</span>`);
+        });
+        
+        // 5. Highlight function definitions
+        highlighted = highlighted.replace(/\b(def\s+)(\w+)/g, '$1<span class="function">$2</span>');
+        
+        // 6. Highlight numbers
+        highlighted = highlighted.replace(/\b\d+\b/g, '<span class="number">$&</span>');
+        
+        return highlighted;
+    }
+    
+    function highlightBash(code) {
+        const keywords = ['if', 'then', 'else', 'elif', 'fi', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'local', 'export', 'echo', 'cd', 'ls', 'mkdir', 'cp', 'mv', 'rm', 'chmod', 'chown', 'grep', 'sed', 'awk', 'sort', 'uniq', 'wc', 'cat', 'head', 'tail', 'conda', 'wget', 'unzip', 'fastqc', 'trimmomatic'];
+        
+        // Split into lines to process line by line (avoids conflicts)
+        const lines = code.split('\n');
+        const highlightedLines = [];
+        
+        for (let line of lines) {
+            let highlighted = line;
+            
+            // Skip if line is empty
+            if (!highlighted.trim()) {
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 1. Highlight shebang
+            if (highlighted.match(/^#!/)) {
+                highlighted = highlighted.replace(/^(#!.*)$/, '<span class="shebang">$1</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 2. Highlight full-line comments
+            if (highlighted.trim().startsWith('#')) {
+                highlighted = highlighted.replace(/^(\s*)(#.*)$/, '$1<span class="comment">$2</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 3. Highlight strings
+            highlighted = highlighted.replace(/("[^"]*")/g, '<span class="string">$1</span>');
+            highlighted = highlighted.replace(/('[^']*')/g, '<span class="string">$1</span>');
+            
+            // 4. Highlight inline comments (after code)
+            highlighted = highlighted.replace(/(\s+)(#.*)$/, '$1<span class="comment">$2</span>');
+            
+            // 5. Highlight variables
+            highlighted = highlighted.replace(/(\$\w+)/g, '<span class="variable">$1</span>');
+            
+            // 6. Highlight keywords
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+            });
+            
+            highlightedLines.push(highlighted);
+        }
+        
+        return highlightedLines.join('\n');
+    }
+    
+    // Apply syntax highlighting on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        highlightCode();
+    });
+    
+    
+    // Navigation functions
+    function prevSlide() {
+        window.location.href = "slide02.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide04.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

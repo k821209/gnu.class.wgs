@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 분석 파이프라인 - 변이 검출</title>
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { 
+            background: #1e1e1e; 
+            border: 1px solid #333; 
+            padding: 20px; 
+            border-radius: 8px; 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            margin: 15px 0; 
+            color: #00ff00;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .code-block::before {
+            content: "";
+            color: #00ff00;
+            font-weight: bold;
+        }
+        .code-block code { 
+            white-space: pre-wrap; 
+            color: #00ff00;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+            background: #555;
+        }
+        .copy-btn.copied {
+            background: #00ff00;
+            color: #000;
+        }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">단계 4: 변이 검출 (Variant Calling)</div>
+    <div class="slide-content">
+        <h2>💎 게놈의 차이점 발견하기</h2>
+        <p>변이 검출은 잘 정렬된 리드와 참조 게놈을 비교하여 SNP(Single Nucleotide Polymorphism), Indel(Insertion/Deletion) 등 유전적 변이를 찾아내는 과정입니다. 이 단계의 결과물인 VCF(Variant Call Format) 파일은 후속 유전체 분석의 핵심이 됩니다.</p>
+
+        <h3>🔧 기본 변이 검출: SAMtools + bcftools</h3>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <p><strong>SAMtools와 bcftools를 이용한 변이 검출</strong>은 가장 기본적이고 널리 사용되는 방법입니다. 이 조합은 빠르고 효율적이며, 대부분의 연구에서 충분한 정확도를 제공합니다.</p>
+            
+            <h4>📊 2단계 처리 과정</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #1976d2; margin-top: 0;">1️⃣ mpileup (Pileup 생성)</h5>
+                    <ul style="font-size: 14px; color: #1976d2;">
+                        <li>각 게놈 위치에서 리드 정보 수집</li>
+                        <li>Base quality, mapping quality 고려</li>
+                        <li>Genotype likelihood 계산</li>
+                        <li>결과: BCF 형태의 likelihood 데이터</li>
+                    </ul>
+                </div>
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #388e3c; margin-top: 0;">2️⃣ call (변이 호출)</h5>
+                    <ul style="font-size: 14px; color: #388e3c;">
+                        <li>Likelihood 데이터에서 변이 결정</li>
+                        <li>통계적 모델로 변이 신뢰도 계산</li>
+                        <li>필터링 및 품질 점수 부여</li>
+                        <li>결과: 최종 VCF 파일</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># 방법 1: 파이프라인으로 한 번에 처리
+bcftools mpileup -f reference.fasta final.bam | \
+    bcftools call -mv -O v -o variants.vcf
+
+# 방법 2: 단계별 처리 (대용량 데이터 권장)
+# Step 1: mpileup으로 genotype likelihood 계산
+bcftools mpileup -f reference.fasta final.bam -O b -o raw.bcf
+
+# Step 2: call로 변이 호출
+bcftools call -mv raw.bcf -O v -o variants.vcf</code>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                <h5 style="color: #856404; margin-top: 0;">🎯 주요 파라미터 설명</h5>
+                <ul style="color: #856404; font-size: 14px;">
+                    <li><strong>-f reference.fasta:</strong> 참조 게놈 파일 지정</li>
+                    <li><strong>-m:</strong> Alternative allele을 포함한 multiallelic calling</li>
+                    <li><strong>-v:</strong> Variant site만 출력 (reference와 다른 위치만)</li>
+                    <li><strong>-O v:</strong> VCF 형식으로 출력 (b=BCF, z=압축VCF)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="tool-comparison">
+            <div class="tool-card">
+                <h3>GATK HaplotypeCaller</h3>
+                <ul>
+                    <li>유전 변이 분석의 산업 표준(de facto standard)으로 여겨지는 도구.</li>
+                    <li>국소적 de novo 어셈블리를 통해 매우 정확한 변이 검출.</li>
+                    <li><strong>장점:</strong> 매우 높은 정확도, 신뢰성 있는 결과, 풍부한 문서.</li>
+                    <li><strong>단점:</strong> 다소 느린 속도, 복잡한 파이프라인.</li>
+                </ul>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code>gatk HaplotypeCaller \
+    -R reference.fasta \
+    -I final.bam \
+    -O variants.vcf</code>
+                </div>
+                
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #28a745;">
+                    <h5 style="color: #155724; margin-top: 0;">🧬 인간 게놈 분석에서 GATK의 특별한 장점</h5>
+                    <ul style="color: #155724; font-size: 14px;">
+                        <li><strong>dbSNP 통합:</strong> 기존 SNP 데이터베이스 활용으로 known variants 우선 검출</li>
+                        <li><strong>BQSR (Base Quality Score Recalibration):</strong> 알려진 변이 위치를 이용한 품질 점수 재보정</li>
+                        <li><strong>VQSR (Variant Quality Score Recalibration):</strong> 고품질 변이 세트로 필터링 모델 학습</li>
+                        <li><strong>Best Practices:</strong> 인간 게놈 특화된 검증된 워크플로우 제공</li>
+                    </ul>
+                    <div class="code-block" style="margin-top: 10px;">
+                        <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                        <code># dbSNP를 활용한 GATK 변이 검출
+gatk HaplotypeCaller \
+    -R reference.fasta \
+    -I final.bam \
+    --dbsnp dbsnp.vcf \
+    -O variants.g.vcf \
+    -ERC GVCF
+
+# BQSR을 통한 품질 재보정
+gatk BaseRecalibrator \
+    -R reference.fasta \
+    -I final.bam \
+    --known-sites dbsnp.vcf \
+    -O recal_data.table</code>
+                    </div>
+                </div>
+            </div>
+            <div class="tool-card">
+                <h3>FreeBayes</h3>
+                <ul>
+                    <li>베이즈 통계(Bayesian statistics)에 기반한 변이 검출 도구.</li>
+                    <li>배수성(ploidy)과 풀링된 샘플(pooled samples) 분석에 강점.</li>
+                    <li><strong>장점:</strong> 빠른 속도, 유연한 파라미터, 집단 유전학 연구에 유용.</li>
+                </ul>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code>freebayes -f reference.fasta -p 2 final.bam > variants.vcf</code>
+                </div>
+            </div>
+            <div class="tool-card">
+                <h3>bcftools call</h3>
+                <ul>
+                    <li>SAMtools 패키지의 변이 검출 도구로 매우 빠른 처리 속도.</li>
+                    <li>대용량 데이터와 멀티샘플 분석에 특화.</li>
+                    <li><strong>장점:</strong> 매우 빠른 속도, 낮은 메모리 사용량, 간단한 워크플로우.</li>
+                    <li><strong>용도:</strong> 초기 스크리닝, 대규모 코호트 분석.</li>
+                </ul>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># mpileup으로 genotype likelihood 계산 후 변이 호출
+bcftools mpileup -f reference.fasta final.bam | \
+    bcftools call -mv -O v -o variants.vcf</code>
+                </div>
+            </div>
+        </div>
+
+        <h3>🆚 변이 검출 도구 비교</h3>
+        <div class="comparison-table">
+            <div class="comparison-item" style="border-left-color: #e74c3c;">
+                <h4><i class="fas fa-balance-scale"></i> 정확도 vs 속도</h4>
+                <ul>
+                    <li><strong>GATK:</strong> 최고 정확도, 느린 속도 (★★★★★ 정확도, ★★☆☆☆ 속도)</li>
+                    <li><strong>FreeBayes:</strong> 높은 정확도, 중간 속도 (★★★★☆ 정확도, ★★★☆☆ 속도)</li>
+                    <li><strong>bcftools:</strong> 양호한 정확도, 빠른 속도 (★★★☆☆ 정확도, ★★★★★ 속도)</li>
+                </ul>
+            </div>
+            <div class="comparison-item" style="border-left-color: #3498db;">
+                <h4><i class="fas fa-cogs"></i> 사용 사례별 권장</h4>
+                <ul>
+                    <li><strong>임상/연구용 정밀 분석:</strong> GATK HaplotypeCaller</li>
+                    <li><strong>인간 게놈 (dbSNP 활용):</strong> GATK with known sites</li>
+                    <li><strong>집단 유전학/배수성 분석:</strong> FreeBayes</li>
+                    <li><strong>비모델 생물 게놈:</strong> bcftools call</li>
+                    <li><strong>대규모 스크리닝/QC:</strong> bcftools call</li>
+                </ul>
+            </div>
+            <div class="comparison-item" style="border-left-color: #28a745;">
+                <h4><i class="fas fa-rocket"></i> 추가 도구들</h4>
+                <ul>
+                    <li><strong>DeepVariant:</strong> Google의 딥러닝 기반 변이 검출 (높은 정확도)</li>
+                    <li><strong>Octopus:</strong> 다배수체 및 복잡한 변이 감지</li>
+                    <li><strong>Strelka2:</strong> 체세포 변이 검출 특화</li>
+                    <li><strong>VarScan:</strong> 체세포/생식세포 변이 구분</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="background: #f0f8f0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <h3 style="color: #155724; margin-top: 0;">🌱 식물 게놈에서는 어떤 도구를 사용해야 할까?</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div>
+                    <h4 style="color: #155724; margin-top: 0;">❌ GATK 사용이 제한적인 이유</h4>
+                    <ul style="color: #155724; font-size: 14px;">
+                        <li><strong>Known sites 부족:</strong> 대부분 식물종에서 dbSNP 같은 포괄적 변이 데이터베이스 부재</li>
+                        <li><strong>BQSR 효과 제한:</strong> Known variants 없이는 품질 재보정의 이점 미미</li>
+                        <li><strong>인간 게놈 특화:</strong> GATK Best Practices는 주로 인간 게놈 기준으로 최적화</li>
+                        <li><strong>복잡성 대비 효과:</strong> 복잡한 파이프라인에 비해 성능 향상 제한적</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 style="color: #155724; margin-top: 0;">✅ 식물 게놈 권장 전략</h4>
+                    <ul style="color: #155724; font-size: 14px;">
+                        <li><strong>bcftools:</strong> 빠르고 효율적, 대부분 식물 연구에 충분</li>
+                        <li><strong>FreeBayes:</strong> 집단 분석이나 polyploid 식물에 유리</li>
+                        <li><strong>GATK (제한적):</strong> 고품질 참조게놈 + known sites 있는 주요 작물만</li>
+                        <li><strong>조합 사용:</strong> bcftools로 초기 분석 → GATK로 정밀 검증</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <h4 style="color: #155724; margin-top: 0;">💡 실용적 권장사항</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 10px;">
+                    <div style="text-align: center;">
+                        <strong style="color: #155724;">🌾 주요 작물</strong><br>
+                        <span style="font-size: 12px; color: #155724;">(벼, 옥수수, 밀 등)</span><br>
+                        <span style="font-size: 14px; color: #155724;">GATK 고려 가능</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong style="color: #155724;">🌿 일반 식물</strong><br>
+                        <span style="font-size: 12px; color: #155724;">(Arabidopsis 등)</span><br>
+                        <span style="font-size: 14px; color: #155724;">bcftools 권장</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong style="color: #155724;">🧬 집단/진화 연구</strong><br>
+                        <span style="font-size: 12px; color: #155724;">(다양성, 계통분석)</span><br>
+                        <span style="font-size: 14px; color: #155724;">FreeBayes 권장</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin-top: 0;">⚠️ 멀티샘플 VCF 생성 시 중요한 고려사항</h3>
+            
+            <div style="background: #f8d7da; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #dc3545;">
+                <h4 style="color: #721c24; margin-top: 0;">🚨 일관된 파이프라인의 중요성</h4>
+                <p style="color: #721c24; margin-bottom: 10px;">
+                    <strong>모든 샘플에 동일한 변이 검출 도구와 파라미터를 사용해야 합니다!</strong>
+                </p>
+                <ul style="color: #721c24; font-size: 14px;">
+                    <li><strong>도구 혼용 금지:</strong> 일부는 GATK, 일부는 bcftools 사용 시 systematic bias 발생</li>
+                    <li><strong>파라미터 일관성:</strong> 동일한 필터링 기준, 품질 임계값 적용 필수</li>
+                    <li><strong>참조 게놈 통일:</strong> 모든 샘플에 동일한 reference genome 사용</li>
+                    <li><strong>전처리 통일:</strong> 동일한 alignment, post-processing 파이프라인 적용</li>
+                </ul>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #f8d7da; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #721c24; margin-top: 0;">❌ 잘못된 예시</h5>
+                    <div style="font-family: monospace; font-size: 12px; color: #721c24;">
+                        <div>샘플1-10: bcftools call</div>
+                        <div>샘플11-20: GATK HaplotypeCaller</div>
+                        <div style="margin-top: 10px; font-weight: bold;">→ 분석 결과 비교 불가능!</div>
+                    </div>
+                </div>
+                <div style="background: #d4edda; padding: 15px; border-radius: 8px;">
+                    <h5 style="color: #155724; margin-top: 0;">✅ 올바른 예시</h5>
+                    <div style="font-family: monospace; font-size: 12px; color: #155724;">
+                        <div>전체 샘플: bcftools mpileup + call</div>
+                        <div>동일 파라미터: -mv -O v</div>
+                        <div style="margin-top: 10px; font-weight: bold;">→ 신뢰할 수 있는 비교 분석!</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># 멀티샘플 일관된 파이프라인 예시
+# 모든 샘플에 동일한 명령어 적용
+for sample in sample1 sample2 sample3 ... sample20; do
+    bcftools mpileup -f reference.fasta ${sample}.bam | \
+        bcftools call -mv -O v -o ${sample}.vcf
+done
+
+# 또는 한 번에 멀티샘플 처리
+bcftools mpileup -f reference.fasta sample1.bam sample2.bam ... sample20.bam | \
+    bcftools call -mv -O v -o multisample.vcf</code>
+            </div>
+            
+            <div style="background: #cce5ff; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <h4 style="color: #004085; margin-top: 0;">💡 왜 일관성이 중요한가?</h4>
+                <ul style="color: #004085; font-size: 14px;">
+                    <li><strong>통계적 검정력:</strong> 동일한 오류율과 감도로 변이 검출되어야 정확한 비교 가능</li>
+                    <li><strong>Batch effect 최소화:</strong> 기술적 변이를 줄여 생물학적 차이에 집중</li>
+                    <li><strong>재현성 확보:</strong> 동일한 조건에서 분석 반복 시 일관된 결과</li>
+                    <li><strong>메타분석 가능:</strong> 다른 연구와의 데이터 통합 분석 시 신뢰성 보장</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+            <h3 style="color: #1565c0; margin-top: 0;">📄 VCF vs gVCF: 파일 형식의 차이점</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                    <h4 style="color: #856404; margin-top: 0;">📊 VCF (Variant Call Format)</h4>
+                    <ul style="color: #856404; font-size: 14px;">
+                        <li><strong>내용:</strong> 변이가 검출된 위치만 기록</li>
+                        <li><strong>특징:</strong> 참조 게놈과 다른 위치만 포함</li>
+                        <li><strong>크기:</strong> 상대적으로 작은 파일 크기</li>
+                        <li><strong>용도:</strong> 단일 샘플 분석, 최종 결과 저장</li>
+                        <li><strong>정보 손실:</strong> Non-variant 위치 정보 없음</li>
+                    </ul>
+                    <div style="background: #f8f8f8; padding: 10px; border-radius: 4px; margin-top: 10px; font-family: monospace; font-size: 12px;">
+                        <div style="font-weight: bold;">VCF 예시 (변이 위치만):</div>
+                        <div>chr1  1000  SNP  A  G  60  PASS</div>
+                        <div>chr1  2500  SNP  T  C  45  PASS</div>
+                        <div style="color: #666;">→ 변이 없는 위치는 기록되지 않음</div>
+                    </div>
+                </div>
+                
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #28a745;">
+                    <h4 style="color: #155724; margin-top: 0;">🔍 gVCF (Genomic VCF)</h4>
+                    <ul style="color: #155724; font-size: 14px;">
+                        <li><strong>내용:</strong> 모든 게놈 위치의 정보 기록</li>
+                        <li><strong>특징:</strong> Variant + Non-variant 위치 모두 포함</li>
+                        <li><strong>크기:</strong> 훨씬 큰 파일 크기</li>
+                        <li><strong>용도:</strong> 멀티샘플 분석 중간 단계</li>
+                        <li><strong>정보 보존:</strong> 모든 위치의 likelihood 정보 유지</li>
+                    </ul>
+                    <div style="background: #f8f8f8; padding: 10px; border-radius: 4px; margin-top: 10px; font-family: monospace; font-size: 12px;">
+                        <div style="font-weight: bold;">gVCF 예시 (모든 위치):</div>
+                        <div>chr1  999   .   G  &lt;NON_REF&gt;  .  .</div>
+                        <div>chr1  1000  SNP A  G,&lt;NON_REF&gt; 60 PASS</div>
+                        <div>chr1  1001  .   T  &lt;NON_REF&gt;  .  .</div>
+                        <div style="color: #666;">→ 모든 위치의 정보가 보존됨</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h4 style="color: #1565c0; margin-top: 0;">🔄 gVCF 워크플로우 비교</h4>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                        <h5 style="color: #1565c0; margin-top: 0;">🧬 GATK gVCF 워크플로우</h5>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; text-align: center; margin: 10px 0;">
+                            <div style="background: #bbdefb; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>1. Individual gVCF</strong><br>
+                                HaplotypeCaller
+                            </div>
+                            <div style="background: #c8e6c9; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>2. CombineGVCFs</strong><br>
+                                여러 gVCF 통합
+                            </div>
+                            <div style="background: #ffe0b2; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>3. GenotypeGVCFs</strong><br>
+                                최종 VCF 생성
+                            </div>
+                            <div style="background: #f8bbd9; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>4. Analysis</strong><br>
+                                downstream 분석
+                            </div>
+                        </div>
+                        
+                        <div class="code-block" style="margin-top: 10px;">
+                            <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                            <code># GATK gVCF 워크플로우
+# 1. 각 샘플별 gVCF 생성
+gatk HaplotypeCaller \
+    -R reference.fasta \
+    -I sample1.bam \
+    -O sample1.g.vcf \
+    -ERC GVCF
+
+# 2. 여러 gVCF 통합
+gatk CombineGVCFs \
+    -R reference.fasta \
+    --variant sample1.g.vcf \
+    --variant sample2.g.vcf \
+    -O cohort.g.vcf
+
+# 3. 최종 멀티샘플 VCF 생성
+gatk GenotypeGVCFs \
+    -R reference.fasta \
+    --variant cohort.g.vcf \
+    -O final_multisample.vcf</code>
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                        <h5 style="color: #2e7d32; margin-top: 0;">⚡ bcftools gVCF 워크플로우</h5>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; text-align: center; margin: 10px 0;">
+                            <div style="background: #c8e6c9; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>1. mpileup gVCF</strong><br>
+                                -a 옵션으로 모든 위치
+                            </div>
+                            <div style="background: #dcedc8; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>2. merge (선택)</strong><br>
+                                여러 gVCF 통합
+                            </div>
+                            <div style="background: #f1f8e9; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>3. call</strong><br>
+                                최종 VCF 생성
+                            </div>
+                            <div style="background: #f8bbd9; padding: 8px; border-radius: 4px; font-size: 12px;">
+                                <strong>4. Analysis</strong><br>
+                                downstream 분석
+                            </div>
+                        </div>
+                        
+                        <div class="code-block" style="margin-top: 10px;">
+                            <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                            <code># bcftools gVCF 워크플로우
+# 1. 각 샘플별 gVCF 생성 (-a 옵션으로 모든 위치 포함)
+bcftools mpileup -f reference.fasta \
+    -a FORMAT/DP,FORMAT/AD,INFO/AD \
+    sample1.bam -O b -o sample1.g.bcf
+
+# 2. 여러 gVCF 통합 (선택사항)
+bcftools merge sample1.g.bcf sample2.g.bcf \
+    -O b -o cohort.g.bcf
+
+# 3. 최종 멀티샘플 VCF 생성
+bcftools call -mv cohort.g.bcf \
+    -O v -o final_multisample.vcf
+
+# 또는 한 번에 멀티샘플 처리
+bcftools mpileup -f reference.fasta \
+    -a FORMAT/DP,FORMAT/AD \
+    sample1.bam sample2.bam sample3.bam | \
+    bcftools call -mv -O v -o multisample.vcf</code>
+                        </div>
+                        
+                        <div style="background: #c8e6c9; padding: 10px; border-radius: 4px; margin-top: 10px;">
+                            <strong style="color: #2e7d32; font-size: 14px;">bcftools의 장점:</strong>
+                            <ul style="color: #2e7d32; font-size: 12px; margin: 5px 0; padding-left: 15px;">
+                                <li>더 빠른 처리 속도</li>
+                                <li>낮은 메모리 사용량</li>
+                                <li>파이프라인으로 연결 가능</li>
+                                <li>식물 게놈에 더 적합</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                    <h5 style="color: #856404; margin-top: 0;">🔄 워크플로우 선택 가이드</h5>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                        <div>
+                            <strong style="color: #856404;">GATK gVCF 사용 시:</strong>
+                            <ul style="color: #856404; font-size: 13px; margin: 5px 0;">
+                                <li>인간 게놈 분석</li>
+                                <li>최고 정확도 필요</li>
+                                <li>Known sites 활용 가능</li>
+                                <li>대규모 코호트 연구</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <strong style="color: #856404;">bcftools gVCF 사용 시:</strong>
+                            <ul style="color: #856404; font-size: 13px; margin: 5px 0;">
+                                <li>식물/비모델 생물 게놈</li>
+                                <li>빠른 처리 속도 중요</li>
+                                <li>제한된 컴퓨팅 자원</li>
+                                <li>간단한 파이프라인 선호</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #ffc107;">
+                <h4 style="color: #856404; margin-top: 0;">💡 언제 어떤 형식을 사용해야 할까?</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px;">
+                    <div>
+                        <h5 style="color: #856404; margin-top: 0;">📊 VCF 사용 시기</h5>
+                        <ul style="color: #856404; font-size: 14px;">
+                            <li>단일 샘플 분석</li>
+                            <li>최종 결과물 저장</li>
+                            <li>bcftools, FreeBayes 사용</li>
+                            <li>저장 공간 절약 필요</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 style="color: #856404; margin-top: 0;">🔍 gVCF 사용 시기</h5>
+                        <ul style="color: #856404; font-size: 14px;">
+                            <li>대규모 멀티샘플 분석</li>
+                            <li>GATK Best Practices</li>
+                            <li>점진적 샘플 추가 예정</li>
+                            <li>정확한 joint calling 필요</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 5 / 7</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide04.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide06.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    function copyCode(button) {
+        const codeBlock = button.nextElementSibling;
+        const codeText = codeBlock.textContent.trim();
+        
+        navigator.clipboard.writeText(codeText).then(function() {
+            button.textContent = '복사됨!';
+            button.classList.add('copied');
+            setTimeout(function() {
+                button.textContent = '복사';
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(function() {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                button.textContent = '복사됨!';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.textContent = '복사';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

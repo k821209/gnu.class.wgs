@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실습 1: 데이터 탐색 및 품질 평가 - Python FASTQ 분석</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #f39c12; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #f39c12; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 14px; white-space: pre-wrap; border: 1px solid #444; position: relative; }
+        .code-block-container { position: relative; }
+        .copy-button { position: absolute; top: 10px; right: 10px; background: #444; color: #f8f8f2; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; opacity: 0.7; transition: opacity 0.2s; }
+        .copy-button:hover { opacity: 1; background: #555; }
+        .copy-button.copied { background: #27ae60; color: white; }
+        .copy-button.copied:after { content: " ✓"; }
+        
+        /* Syntax highlighting color classes */
+        .comment { color: #75715e; } /* Comments */
+        .keyword { color: #f92672; } /* Keywords */
+        .function { color: #a6e22e; } /* Function names */
+        .string { color: #e6db74; } /* Strings */
+        .number { color: #ae81ff; } /* Numbers */
+        .param { color: #fd971f; } /* Parameters */
+        .variable { color: #f8f8f2; } /* Variables */
+        .builtin { color: #a6e22e; } /* Built-in functions */
+        .operator { color: #f92672; } /* Operators */
+        .shebang { color: #75715e; } /* Shebang */
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #f39c12; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #e67e22; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #3498db; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #2980b9; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #f39c12; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .setup-steps { background: #e8f4fd; border-left: 4px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .practical-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .jupyter-cell { background: #ffffff; border: 1px solid #e1e4e8; border-radius: 6px; margin: 10px 0; }
+        .jupyter-input { background: #f6f8fa; padding: 10px; border-bottom: 1px solid #e1e4e8; font-family: 'Courier New', monospace; font-size: 12px; }
+        .jupyter-output { padding: 10px; font-family: 'Courier New', monospace; font-size: 12px; }
+        .exercise-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .result-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">💻 실습 1: 데이터 탐색 및 품질 평가</div>
+    <div class="slide-content">
+        <h2>🎯 실습 목표</h2>
+        <p>Python을 사용하여 FASTQ 파일을 직접 분석하고 품질을 평가하는 실습을 진행합니다. JupyterLab 환경에서 실제 콩 게놈 데이터를 탐색해보겠습니다.</p>
+
+        <div class="comparison-table">
+            <div class="comparison-item">
+                <h4><i class="fas fa-bullseye"></i> 학습 목표</h4>
+                <ul>
+                    <li>FASTQ 파일 구조 이해</li>
+                    <li>Python으로 시퀀싱 데이터 읽기</li>
+                    <li>품질 점수 분석 및 시각화</li>
+                    <li>리드 길이 분포 확인</li>
+                    <li>GC 함량 계산</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #e74c3c;">
+                <h4><i class="fas fa-tools"></i> 사용 도구</h4>
+                <ul>
+                    <li><strong>Python 라이브러리:</strong> BioPython, pandas, matplotlib, seaborn</li>
+                    <li><strong>데이터:</strong> 콩 게놈 FASTQ 파일</li>
+                    <li><strong>환경:</strong> JupyterLab</li>
+                    <li><strong>분석 방법:</strong> 직접 파싱 및 통계 분석</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>📂 실습 데이터 준비</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-database"></i> 데이터 디렉토리 확인</h3>
+            <p>AWS EC2 인스턴스의 <code>/home/ubuntu/edu/soybean_data/</code> 디렉토리에 실습용 FASTQ 파일이 준비되어 있습니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# 데이터 디렉토리 확인
+ls -la /home/ubuntu/edu/soybean_data/
+
+# 파일 크기 확인
+du -sh /home/ubuntu/edu/soybean_data/*
+
+# FASTQ 파일 압축 확인
+file /home/ubuntu/edu/soybean_data/*.fastq.gz
+</div>
+            </div>
+        </div>
+
+        <h2>🐍 Python 라이브러리 설정</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-code"></i> 필요한 라이브러리 가져오기</h3>
+            <p>JupyterLab에서 새로운 노트북을 생성하고 다음 라이브러리들을 가져옵니다:</p>
+            
+            <div class="code-block-container">
+                <div class="code-block python">
+# 필수 라이브러리 가져오기
+import gzip
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from collections import Counter, defaultdict
+from pathlib import Path
+import warnings
+warnings.filterwarnings('ignore')
+
+# 그래프 스타일 설정
+plt.style.use('seaborn-v0_8')
+sns.set_palette("husl")
+
+# 그래프 크기 기본값 설정
+plt.rcParams['figure.figsize'] = (10, 6)
+plt.rcParams['font.size'] = 12
+
+print("✅ 라이브러리 가져오기 완료!")
+</div>
+            </div>
+        </div>
+
+        <h2>📊 FASTQ 파일 기본 탐색</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-search"></i> 1단계: 파일 정보 확인</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block python">
+def explore_fastq_files(data_dir):
+    """FASTQ 파일들의 기본 정보를 확인합니다."""
+    
+    data_path = Path(data_dir)
+    fastq_files = list(data_path.glob("*.fastq.gz"))
+    
+    print(f"📁 데이터 디렉토리: {data_dir}")
+    print(f"🔍 발견된 FASTQ 파일: {len(fastq_files)}개")
+    print("=" * 50)
+    
+    file_info = []
+    
+    for fastq_file in sorted(fastq_files):
+        # 파일 크기 (MB)
+        file_size = fastq_file.stat().st_size / (1024 * 1024)
+        
+        # 파일 이름 분석
+        file_name = fastq_file.name
+        is_paired = "_1.fastq.gz" in file_name or "_2.fastq.gz" in file_name
+        read_type = "R1" if "_1.fastq.gz" in file_name else "R2" if "_2.fastq.gz" in file_name else "SE"
+        
+        file_info.append({
+            'filename': file_name,
+            'size_mb': file_size,
+            'read_type': read_type,
+            'is_paired': is_paired
+        })
+        
+        print(f"📄 {file_name}")
+        print(f"   크기: {file_size:.1f} MB")
+        print(f"   타입: {read_type} ({'Paired-End' if is_paired else 'Single-End'})")
+        print()
+    
+    return file_info
+
+# 실습 데이터 탐색
+data_directory = "/home/ubuntu/edu/soybean_data"
+file_info = explore_fastq_files(data_directory)
+</div>
+            </div>
+        </div>
+
+        <h2>🧬 FASTQ 파일 파싱 및 분석</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-dna"></i> 2단계: FASTQ 파서 구현</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block python">
+def parse_fastq_sample(fastq_file, sample_size=10000):
+    """FASTQ 파일에서 샘플을 추출하여 분석합니다."""
+    
+    print(f"🔍 파일 분석: {fastq_file}")
+    
+    sequences = []
+    quality_scores = []
+    sequence_lengths = []
+    gc_contents = []
+    
+    with gzip.open(fastq_file, 'rt') as f:
+        line_count = 0
+        current_seq = ""
+        current_qual = ""
+        
+        for line in f:
+            line = line.strip()
+            
+            # FASTQ 형식: 4줄씩 반복
+            if line_count % 4 == 0:  # Header line (@로 시작)
+                if line_count > 0:  # 첫 번째가 아닌 경우 이전 데이터 저장
+                    sequences.append(current_seq)
+                    quality_scores.append(current_qual)
+                    sequence_lengths.append(len(current_seq))
+                    
+                    # GC 함량 계산
+                    gc_count = current_seq.count('G') + current_seq.count('C')
+                    gc_content = gc_count / len(current_seq) * 100
+                    gc_contents.append(gc_content)
+                    
+                    # 샘플 크기 도달 시 중단
+                    if len(sequences) >= sample_size:
+                        break
+                        
+            elif line_count % 4 == 1:  # Sequence line
+                current_seq = line
+            elif line_count % 4 == 3:  # Quality line
+                current_qual = line
+            
+            line_count += 1
+    
+    # 마지막 시퀀스 처리
+    if current_seq and len(sequences) < sample_size:
+        sequences.append(current_seq)
+        quality_scores.append(current_qual)
+        sequence_lengths.append(len(current_seq))
+        gc_count = current_seq.count('G') + current_seq.count('C')
+        gc_content = gc_count / len(current_seq) * 100
+        gc_contents.append(gc_content)
+    
+    print(f"📊 분석 완료: {len(sequences)}개 시퀀스")
+    
+    return {
+        'sequences': sequences,
+        'quality_scores': quality_scores,
+        'sequence_lengths': sequence_lengths,
+        'gc_contents': gc_contents
+    }
+
+# 첫 번째 FASTQ 파일 분석
+if file_info:
+    first_file = Path(data_directory) / file_info[0]['filename']
+    sample_data = parse_fastq_sample(first_file, sample_size=5000)
+    
+    print(f"\n📈 분석 결과:")
+    print(f"   평균 리드 길이: {np.mean(sample_data['sequence_lengths']):.1f} bp")
+    print(f"   평균 GC 함량: {np.mean(sample_data['gc_contents']):.1f}%")
+</div>
+            </div>
+        </div>
+
+        <h2>📊 품질 점수 분석</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-chart-line"></i> 3단계: 품질 점수 시각화</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block python">
+def analyze_quality_scores(quality_scores):
+    """품질 점수를 분석하고 시각화합니다."""
+    
+    print("📊 품질 점수 분석 중...")
+    
+    # 품질 점수를 숫자로 변환 (ASCII - 33)
+    quality_matrices = []
+    
+    for qual_string in quality_scores:
+        qual_nums = [ord(char) - 33 for char in qual_string]
+        quality_matrices.append(qual_nums)
+    
+    # 위치별 품질 점수 계산
+    max_length = max(len(qual) for qual in quality_matrices)
+    position_qualities = defaultdict(list)
+    
+    for qual_list in quality_matrices:
+        for pos, qual in enumerate(qual_list):
+            position_qualities[pos].append(qual)
+    
+    # 위치별 평균 품질 계산
+    positions = []
+    mean_qualities = []
+    q25_qualities = []
+    q75_qualities = []
+    
+    for pos in range(max_length):
+        if pos in position_qualities:
+            quals = position_qualities[pos]
+            positions.append(pos + 1)  # 1-based indexing
+            mean_qualities.append(np.mean(quals))
+            q25_qualities.append(np.percentile(quals, 25))
+            q75_qualities.append(np.percentile(quals, 75))
+    
+    # 시각화
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    
+    # 1. 위치별 품질 점수
+    axes[0, 0].plot(positions, mean_qualities, 'b-', linewidth=2, label='평균')
+    axes[0, 0].fill_between(positions, q25_qualities, q75_qualities, alpha=0.3, label='25-75 백분위')
+    axes[0, 0].axhline(y=20, color='r', linestyle='--', label='Q20 (99% 정확도)')
+    axes[0, 0].axhline(y=30, color='g', linestyle='--', label='Q30 (99.9% 정확도)')
+    axes[0, 0].set_xlabel('염기 위치')
+    axes[0, 0].set_ylabel('품질 점수')
+    axes[0, 0].set_title('위치별 품질 점수')
+    axes[0, 0].legend()
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 2. 품질 점수 히스토그램
+    all_qualities = [q for qual_list in quality_matrices for q in qual_list]
+    axes[0, 1].hist(all_qualities, bins=50, alpha=0.7, color='skyblue', edgecolor='black')
+    axes[0, 1].axvline(x=20, color='r', linestyle='--', label='Q20')
+    axes[0, 1].axvline(x=30, color='g', linestyle='--', label='Q30')
+    axes[0, 1].set_xlabel('품질 점수')
+    axes[0, 1].set_ylabel('빈도')
+    axes[0, 1].set_title('품질 점수 분포')
+    axes[0, 1].legend()
+    
+    # 3. 리드별 평균 품질
+    read_avg_qualities = [np.mean(qual_list) for qual_list in quality_matrices]
+    axes[1, 0].hist(read_avg_qualities, bins=30, alpha=0.7, color='lightgreen', edgecolor='black')
+    axes[1, 0].axvline(x=20, color='r', linestyle='--', label='Q20')
+    axes[1, 0].axvline(x=30, color='g', linestyle='--', label='Q30')
+    axes[1, 0].set_xlabel('리드 평균 품질 점수')
+    axes[1, 0].set_ylabel('리드 수')
+    axes[1, 0].set_title('리드별 평균 품질 분포')
+    axes[1, 0].legend()
+    
+    # 4. 품질 점수 박스플롯 (위치별)
+    box_data = []
+    box_positions = []
+    step = max(1, len(positions) // 20)  # 최대 20개 위치만 표시
+    
+    for i in range(0, len(positions), step):
+        pos = positions[i]
+        if pos - 1 in position_qualities:
+            box_data.append(position_qualities[pos - 1])
+            box_positions.append(pos)
+    
+    axes[1, 1].boxplot(box_data, positions=box_positions, widths=step*0.8)
+    axes[1, 1].axhline(y=20, color='r', linestyle='--', label='Q20')
+    axes[1, 1].axhline(y=30, color='g', linestyle='--', label='Q30')
+    axes[1, 1].set_xlabel('염기 위치')
+    axes[1, 1].set_ylabel('품질 점수')
+    axes[1, 1].set_title('위치별 품질 점수 분포')
+    axes[1, 1].legend()
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # 통계 요약
+    print(f"\n📊 품질 점수 통계:")
+    print(f"   전체 평균 품질: {np.mean(all_qualities):.2f}")
+    print(f"   Q20 이상 비율: {np.mean(np.array(all_qualities) >= 20) * 100:.1f}%")
+    print(f"   Q30 이상 비율: {np.mean(np.array(all_qualities) >= 30) * 100:.1f}%")
+    print(f"   리드 평균 품질: {np.mean(read_avg_qualities):.2f}")
+    
+    return {
+        'mean_qualities': mean_qualities,
+        'all_qualities': all_qualities,
+        'read_avg_qualities': read_avg_qualities
+    }
+
+# 품질 점수 분석 실행
+quality_analysis = analyze_quality_scores(sample_data['quality_scores'])
+</div>
+            </div>
+        </div>
+
+        <h2>🧮 서열 조성 분석</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-dna"></i> 4단계: 염기 조성 및 GC 함량 분석</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block python">
+def analyze_sequence_composition(sequences, gc_contents):
+    """서열 조성을 분석하고 시각화합니다."""
+    
+    print("🧬 서열 조성 분석 중...")
+    
+    # 염기 조성 계산
+    base_counts = Counter()
+    total_bases = 0
+    
+    for seq in sequences:
+        for base in seq:
+            base_counts[base] += 1
+            total_bases += 1
+    
+    # 위치별 염기 조성 (처음 50bp만)
+    position_bases = defaultdict(lambda: defaultdict(int))
+    max_pos = min(50, min(len(seq) for seq in sequences))
+    
+    for seq in sequences:
+        for pos in range(max_pos):
+            base = seq[pos]
+            position_bases[pos][base] += 1
+    
+    # 시각화
+    fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+    
+    # 1. 전체 염기 조성
+    bases = ['A', 'T', 'G', 'C', 'N']
+    counts = [base_counts[base] for base in bases]
+    percentages = [count / total_bases * 100 for count in counts]
+    
+    colors = ['red', 'blue', 'green', 'orange', 'gray']
+    axes[0, 0].bar(bases, percentages, color=colors, alpha=0.7)
+    axes[0, 0].set_ylabel('비율 (%)')
+    axes[0, 0].set_title('전체 염기 조성')
+    axes[0, 0].grid(True, alpha=0.3)
+    
+    # 각 막대에 백분율 표시
+    for i, (base, pct) in enumerate(zip(bases, percentages)):
+        axes[0, 0].text(i, pct + 0.1, f'{pct:.1f}%', ha='center', va='bottom')
+    
+    # 2. GC 함량 분포
+    axes[0, 1].hist(gc_contents, bins=30, alpha=0.7, color='lightcoral', edgecolor='black')
+    axes[0, 1].axvline(x=np.mean(gc_contents), color='red', linestyle='--', 
+                      label=f'평균: {np.mean(gc_contents):.1f}%')
+    axes[0, 1].set_xlabel('GC 함량 (%)')
+    axes[0, 1].set_ylabel('리드 수')
+    axes[0, 1].set_title('GC 함량 분포')
+    axes[0, 1].legend()
+    axes[0, 1].grid(True, alpha=0.3)
+    
+    # 3. 위치별 염기 조성 (처음 50bp)
+    positions = list(range(1, max_pos + 1))
+    base_percentages = {base: [] for base in bases}
+    
+    for pos in range(max_pos):
+        total_at_pos = sum(position_bases[pos].values())
+        for base in bases:
+            pct = position_bases[pos][base] / total_at_pos * 100 if total_at_pos > 0 else 0
+            base_percentages[base].append(pct)
+    
+    for base, color in zip(bases, colors):
+        axes[1, 0].plot(positions, base_percentages[base], 
+                       color=color, linewidth=2, label=base, marker='o', markersize=3)
+    
+    axes[1, 0].set_xlabel('염기 위치')
+    axes[1, 0].set_ylabel('비율 (%)')
+    axes[1, 0].set_title('위치별 염기 조성 (처음 50bp)')
+    axes[1, 0].legend()
+    axes[1, 0].grid(True, alpha=0.3)
+    
+    # 4. 리드 길이 분포
+    lengths = [len(seq) for seq in sequences]
+    axes[1, 1].hist(lengths, bins=30, alpha=0.7, color='lightblue', edgecolor='black')
+    axes[1, 1].axvline(x=np.mean(lengths), color='red', linestyle='--', 
+                      label=f'평균: {np.mean(lengths):.1f}bp')
+    axes[1, 1].set_xlabel('리드 길이 (bp)')
+    axes[1, 1].set_ylabel('리드 수')
+    axes[1, 1].set_title('리드 길이 분포')
+    axes[1, 1].legend()
+    axes[1, 1].grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # 통계 요약
+    print(f"\n🧬 서열 조성 통계:")
+    print(f"   A: {percentages[0]:.1f}%")
+    print(f"   T: {percentages[1]:.1f}%")
+    print(f"   G: {percentages[2]:.1f}%")
+    print(f"   C: {percentages[3]:.1f}%")
+    print(f"   N: {percentages[4]:.1f}%")
+    print(f"   평균 GC 함량: {np.mean(gc_contents):.1f}%")
+    print(f"   평균 리드 길이: {np.mean(lengths):.1f}bp")
+    
+    return {
+        'base_counts': base_counts,
+        'gc_contents': gc_contents,
+        'lengths': lengths
+    }
+
+# 서열 조성 분석 실행
+composition_analysis = analyze_sequence_composition(sample_data['sequences'], sample_data['gc_contents'])
+</div>
+            </div>
+        </div>
+
+        <h2>🔬 심화 분석</h2>
+        <div class="exercise-box">
+            <h3><i class="fas fa-flask"></i> 추가 실습 과제</h3>
+            <ol>
+                <li><strong>Paired-End 분석:</strong> R1과 R2 파일을 비교하여 품질 차이를 분석해보세요.</li>
+                <li><strong>어댑터 검출:</strong> 리드에서 어댑터 서열이 포함된 비율을 계산해보세요.</li>
+                <li><strong>품질 필터링:</strong> Q20 이상인 리드만 선별하여 분석해보세요.</li>
+                <li><strong>복잡도 분석:</strong> 서열의 복잡도(중복 k-mer 비율)를 계산해보세요.</li>
+            </ol>
+        </div>
+
+        <div class="result-box">
+            <h3><i class="fas fa-check-circle"></i> 실습 완료 체크리스트</h3>
+            <ul>
+                <li>✅ FASTQ 파일 구조 이해</li>
+                <li>✅ Python으로 FASTQ 파일 파싱</li>
+                <li>✅ 품질 점수 분석 및 시각화</li>
+                <li>✅ 서열 조성 분석</li>
+                <li>✅ GC 함량 분포 확인</li>
+                <li>✅ 리드 길이 분포 분석</li>
+            </ul>
+        </div>
+
+        <h2>🎯 다음 단계</h2>
+        <p>이제 데이터의 품질을 파악했으니, 다음 실습에서는 FastQC와 Trimmomatic을 사용하여 실제 품질 관리 및 전처리를 진행하겠습니다.</p>
+
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToIndex()">🏠 목차</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 4 / 8</div>
+
+<script>
+    // Syntax highlighting function
+    function highlightCode() {
+        const codeBlocks = document.querySelectorAll('.code-block');
+        
+        codeBlocks.forEach(block => {
+            const code = block.textContent;
+            const language = block.classList.contains('python') ? 'python' : 
+                           block.classList.contains('bash') ? 'bash' : 'python'; // default to python
+            
+            const highlightedCode = highlightSyntax(code, language);
+            block.innerHTML = highlightedCode;
+            
+            // Add copy button
+            addCopyButton(block, code);
+        });
+    }
+    
+    // Add copy button to code block
+    function addCopyButton(codeBlock, originalCode) {
+        // Check if copy button already exists
+        const container = codeBlock.parentElement;
+        if (container && container.querySelector('.copy-button')) {
+            return; // Copy button already exists
+        }
+        
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.title = 'Copy code to clipboard';
+        
+        copyButton.addEventListener('click', function() {
+            copyToClipboard(originalCode, copyButton);
+        });
+        
+        // Append to container if it exists, otherwise to code block
+        if (container && container.classList.contains('code-block-container')) {
+            container.appendChild(copyButton);
+        } else {
+            codeBlock.style.position = 'relative'; // Ensure positioning context
+            codeBlock.appendChild(copyButton);
+        }
+    }
+    
+    // Copy text to clipboard
+    function copyToClipboard(text, button) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern approach
+            navigator.clipboard.writeText(text).then(function() {
+                showCopySuccess(button);
+            }).catch(function() {
+                fallbackCopyToClipboard(text, button);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyToClipboard(text, button);
+        }
+    }
+    
+    // Fallback copy method
+    function fallbackCopyToClipboard(text, button) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showCopySuccess(button);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+        
+        document.body.removeChild(textArea);
+    }
+    
+    // Show copy success feedback
+    function showCopySuccess(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(function() {
+            button.textContent = originalText;
+            button.classList.remove('copied');
+        }, 2000);
+    }
+    
+    function highlightSyntax(code, language) {
+        if (language === 'python') {
+            return highlightPython(code);
+        } else if (language === 'bash') {
+            return highlightBash(code);
+        }
+        return code;
+    }
+    
+    function highlightPython(code) {
+        let highlighted = code;
+        
+        // 1. Highlight strings first
+        highlighted = highlighted.replace(/"[^"]*"/g, '<span class="string">$&</span>');
+        highlighted = highlighted.replace(/'[^']*'/g, '<span class="string">$&</span>');
+        
+        // 2. Highlight comments
+        highlighted = highlighted.replace(/#.*$/gm, '<span class="comment">$&</span>');
+        
+        // 3. Highlight keywords
+        const keywords = ['import', 'from', 'def', 'if', 'else', 'elif', 'for', 'while', 'try', 'except', 'with', 'as', 'return', 'and', 'or', 'not', 'in', 'is', 'True', 'False', 'None'];
+        keywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+        });
+        
+        // 4. Highlight built-in functions
+        const builtins = ['print', 'len', 'open', 'range', 'enumerate', 'gzip', 'os', 'plt', 'np', 'Counter', 'Path', 'subprocess', 'str', 'int', 'float', 'list', 'dict', 'set', 'tuple', 'zip', 'sorted', 'sum', 'max', 'min', 'time'];
+        builtins.forEach(builtin => {
+            const regex = new RegExp(`\\b${builtin}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="builtin">${builtin}</span>`);
+        });
+        
+        // 5. Highlight function definitions
+        highlighted = highlighted.replace(/\b(def\s+)(\w+)/g, '$1<span class="function">$2</span>');
+        
+        // 6. Highlight numbers
+        highlighted = highlighted.replace(/\b\d+\b/g, '<span class="number">$&</span>');
+        
+        return highlighted;
+    }
+    
+    function highlightBash(code) {
+        const keywords = ['if', 'then', 'else', 'elif', 'fi', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'local', 'export', 'echo', 'cd', 'ls', 'mkdir', 'cp', 'mv', 'rm', 'chmod', 'chown', 'grep', 'sed', 'awk', 'sort', 'uniq', 'wc', 'cat', 'head', 'tail', 'conda', 'wget', 'unzip', 'fastqc', 'trimmomatic', 'du', 'file'];
+        
+        // Split into lines to process line by line (avoids conflicts)
+        const lines = code.split('\n');
+        const highlightedLines = [];
+        
+        for (let line of lines) {
+            let highlighted = line;
+            
+            // Skip if line is empty
+            if (!highlighted.trim()) {
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 1. Highlight shebang
+            if (highlighted.match(/^#!/)) {
+                highlighted = highlighted.replace(/^(#!.*)$/, '<span class="shebang">$1</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 2. Highlight full-line comments
+            if (highlighted.trim().startsWith('#')) {
+                highlighted = highlighted.replace(/^(\s*)(#.*)$/, '$1<span class="comment">$2</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 3. Highlight strings
+            highlighted = highlighted.replace(/("[^"]*")/g, '<span class="string">$1</span>');
+            highlighted = highlighted.replace(/('[^']*')/g, '<span class="string">$1</span>');
+            
+            // 4. Highlight inline comments (after code)
+            highlighted = highlighted.replace(/(\s+)(#.*)$/, '$1<span class="comment">$2</span>');
+            
+            // 5. Highlight variables
+            highlighted = highlighted.replace(/(\$\w+)/g, '<span class="variable">$1</span>');
+            
+            // 6. Highlight keywords
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+            });
+            
+            highlightedLines.push(highlighted);
+        }
+        
+        return highlightedLines.join('\n');
+    }
+    
+    // Apply syntax highlighting on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        highlightCode();
+    });
+    
+    // Navigation functions
+    function prevSlide() {
+        window.location.href = "slide03.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide05.html";
+    }
+    
+    function jumpToIndex() {
+        window.location.href = "index.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToIndex();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

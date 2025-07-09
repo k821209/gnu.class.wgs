@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 기초 이론 - Sanger Technology Advantages</title>
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #282c34; color: #abb2bf; border: 1px solid #3e4451; padding: 15px; border-radius: 5px; font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace; margin: 15px 0; overflow-x: auto; }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+<div class="slide-title">Sanger 기술의 장단점</div>
+    <div class="slide-content">
+        <h2>✅ 장점</h2>
+        <ul>
+            <li><span class="highlight">높은 정확도</span>: 99.9% 이상의 정확도</li>
+            <li><span class="highlight">긴 읽기 길이</span>: 800-1000bp까지 가능</li>
+            <li><span class="highlight">단순한 라이브러리 준비</span>: 복잡한 전처리 불필요</li>
+            <li><span class="highlight">표준 기술</span>: 오랜 기간 검증된 기술</li>
+            <li><span class="highlight">직접 시퀀싱</span>: PCR 산물 직접 분석 가능</li>
+        </ul>
+
+        <h2>❌ 단점</h2>
+        <ul>
+            <li><span class="highlight">낮은 처리량</span>: 한 번에 96개 반응만 가능</li>
+            <li><span class="highlight">높은 비용</span>: 염기당 비용이 NGS보다 100-1000배 높음</li>
+            <li><span class="highlight">긴 소요시간</span>: 결과까지 6-8시간 소요</li>
+            <li><span class="highlight">수동 작업</span>: 많은 인력과 시간 필요</li>
+            <li><span class="highlight">제한적 응용</span>: 대용량 분석에 부적합</li>
+        </ul>
+
+        <h2>🎯 현재 사용 분야</h2>
+        <ul>
+            <li>PCR 산물 확인 및 검증</li>
+            <li>클론 시퀀싱 및 플라스미드 분석</li>
+            <li>NGS 결과 검증 (Gold Standard)</li>
+            <li>소규모 타겟 시퀀싱</li>
+        </ul>
+
+        <h2>⚠️ Sanger 시퀀싱의 주요 한계점</h2>
+        <div style="background: #fff3cd; padding: 20px; border-radius: 8px; border-left: 4px solid #ffc107; margin: 20px 0;">
+            <h3 style="color: #856404; margin-top: 0;">🧬 이형접합 사이트 (Heterozygous Sites) 분석의 어려움</h3>
+            
+            <div style="margin: 15px 0;">
+                <h4 style="color: #495057;">문제점:</h4>
+                <ul>
+                    <li><span class="highlight">이중 피크 (Double Peak)</span>: 한 위치에서 두 개의 염기가 동시에 나타남</li>
+                    <li><span class="highlight">신호 겹침</span>: 서로 다른 염기의 형광 신호가 중첩됨</li>
+                    <li><span class="highlight">해석 어려움</span>: 진짜 변이 vs 실험 오류 구분 곤란</li>
+                    <li><span class="highlight">정량적 한계</span>: 각 allele의 정확한 비율 측정 불가</li>
+                </ul>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4 style="color: #495057; margin-top: 0;">📈 크로마토그램 예시</h4>
+                <div style="font-family: monospace; background: #000; color: #0f0; padding: 10px; border-radius: 3px; margin: 10px 0;">
+                    <div>위치: 150bp</div>
+                    <div>정상___  (AA): ----A----A----A----</div>
+                    <div>변이___  (GG): ----G----G----G----</div>
+                    <div>이형접합  (AG): ----R----R----R---- (R = A+G 겹침)</div>
+                </div>
+                <div style="font-size: 14px; color: #666;">
+                    ※ 실제 크로마토그램에서는 A(녹색)와 G(검은색) 피크가 동시에 나타나 해석이 어려움
+                </div>
+            </div>
+
+            <div style="margin: 15px 0;">
+                <h4 style="color: #495057;">해결 방안:</h4>
+                <ul>
+                    <li><span class="highlight">클론 시퀀싱</span>: PCR 산물을 클론화하여 각 allele을 분리</li>
+                    <li><span class="highlight">Allele-specific PCR</span>: 특정 allele만 증폭하는 PCR</li>
+                    <li><span class="highlight">NGS 활용</span>: 대량의 reads로 각 allele 정량 분석</li>
+                    <li><span class="highlight">TOPO 클론화</span>: 무작위 클론 선별 후 개별 시퀀싱</li>
+                </ul>
+            </div>
+
+            <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h4 style="color: #495057; margin-top: 0;">🔬 실제 사례</h4>
+                <div style="font-size: 14px; line-height: 1.6;">
+                    <strong>인간 BRCA1 유전자 분석:</strong><br>
+                    • 위치: exon 11, c.3481G>A (p.Asp1161Asn)<br>
+                    • 이형접합 환자: G/A 동시 존재<br>
+                    • Sanger 결과: 모호한 이중 피크<br>
+                    • 해결: 클론 시퀀싱으로 G 및 A allele 개별 확인<br>
+                    • 임상 의미: 유전성 유방암 위험도 평가에 중요
+                </div>
+            </div>
+
+            <div style="background: #d1ecf1; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #17a2b8;">
+                <h4 style="color: #0c5460; margin-top: 0;">💻 ABI 파일에서 신호 분리 가능성</h4>
+                
+                <div style="margin: 10px 0;">
+                    <h5 style="color: #495057;">✅ 가능한 작업:</h5>
+                    <ul style="font-size: 14px;">
+                        <li><span class="highlight">원시 신호 추출</span>: 4개 채널 (A, T, G, C) 개별 형광 강도 데이터</li>
+                        <li><span class="highlight">피크 높이 분석</span>: 각 위치에서 염기별 신호 강도 측정</li>
+                        <li><span class="highlight">비율 계산</span>: 이형접합 위치에서 각 allele의 상대적 비율</li>
+                        <li><span class="highlight">노이즈 제거</span>: 배경 신호 보정 및 스무딩</li>
+                    </ul>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 10px; border-radius: 3px; margin: 10px 0;">
+                    <h5 style="color: #495057; margin-top: 0;">🛠️ 분석 도구 및 방법:</h5>
+                    <div style="font-size: 13px; font-family: monospace;">
+                        <strong>Python 라이브러리:</strong><br>
+                        • BioPython: SeqIO.AbiIO 모듈<br>
+                        • abifpy: ABI 파일 전용 파서<br>
+                        • tracy: 웹 기반 크로마토그램 뷰어<br><br>
+                        
+                        <strong>R 패키지:</strong><br>
+                        • sangerseqR: ABI 파일 분석<br>
+                        • DECIPHER: 시퀀스 분석 도구<br><br>
+                        
+                        <strong>상용 소프트웨어:</strong><br>
+                        • Sequencher: 전문 시퀀스 분석<br>
+                        • Geneious: 통합 생물정보학 플랫폼
+                    </div>
+                </div>
+
+                <div style="margin: 10px 0;">
+                    <h5 style="color: #495057;">📊 분석 예시 (Python):</h5>
+                    <div style="background: #2d3748; color: #e2e8f0; padding: 10px; border-radius: 3px; font-family: monospace; font-size: 12px;">
+                        <div style="color: #4299e1;"># ABI 파일에서 신호 분리</div>
+                        <div>from Bio import SeqIO</div>
+                        <div>import numpy as np</div><br>
+                        <div style="color: #4299e1;"># ABI 파일 로드</div>
+                        <div>record = SeqIO.read("sample.ab1", "abi")</div><br>
+                        <div style="color: #4299e1;"># 4개 채널 신호 추출</div>
+                        <div>channels = record.annotations['abif_raw']</div>
+                        <div>trace_A = channels['DATA9']  <span style="color: #68d391;"># A 채널</span></div>
+                        <div>trace_T = channels['DATA10'] <span style="color: #68d391;"># T 채널</span></div>
+                        <div>trace_G = channels['DATA11'] <span style="color: #68d391;"># G 채널</span></div>
+                        <div>trace_C = channels['DATA12'] <span style="color: #68d391;"># C 채널</span></div><br>
+                        <div style="color: #4299e1;"># 특정 위치에서 신호 비율 계산</div>
+                        <div>pos = 150  <span style="color: #68d391;"># 이형접합 위치</span></div>
+                        <div>ratio_A = trace_A[pos] / (trace_A[pos] + trace_G[pos])</div>
+                        <div>ratio_G = trace_G[pos] / (trace_A[pos] + trace_G[pos])</div>
+                    </div>
+                </div>
+
+                <div style="margin: 10px 0;">
+                    <h5 style="color: #495057;">⚠️ 한계점:</h5>
+                    <ul style="font-size: 14px;">
+                        <li><span class="highlight">정확도 제한</span>: 5-10% 오차 범위</li>
+                        <li><span class="highlight">배경 노이즈</span>: 신호 간섭으로 인한 부정확성</li>
+                        <li><span class="highlight">위치별 편차</span>: 시퀀싱 품질에 따른 변동</li>
+                        <li><span class="highlight">복합 변이</span>: 인접한 여러 변이는 분석 어려움</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 5 / 21</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide04.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide06.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

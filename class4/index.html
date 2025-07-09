@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class 4: 실습 - JupyterLab 기반 WGS 분석</title>
+    <style>
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 40px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 40px; }
+        .slide-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .slide-card { background: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 4px solid #27ae60; transition: transform 0.2s; }
+        .slide-card:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .slide-title { font-size: 18px; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+        .slide-description { font-size: 14px; color: #7f8c8d; margin-bottom: 15px; line-height: 1.5; }
+        .slide-link { display: inline-block; background: #27ae60; color: white; padding: 8px 16px; border-radius: 5px; text-decoration: none; font-size: 14px; margin-right: 10px; }
+        .slide-link:hover { background: #229954; }
+        .section-header { grid-column: 1 / -1; background: #27ae60; color: white; padding: 15px; border-radius: 8px; margin: 20px 0 10px 0; text-align: center; font-weight: bold; }
+        .practical-header { grid-column: 1 / -1; background: #f39c12; color: white; padding: 15px; border-radius: 8px; margin: 20px 0 10px 0; text-align: center; font-weight: bold; }
+        .info-box { background: #e8f4fd; border-left: 4px solid #3498db; padding: 20px; margin: 30px 0; border-radius: 8px; }
+        .info-box h3 { color: #2980b9; margin-top: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧬 Class 4: 실습 - JupyterLab 기반 WGS 분석</h1>
+        
+        <div class="info-box">
+            <h3>🎯 실습 목표</h3>
+            <ul>
+                <li><strong>실제 식물 게놈 데이터</strong>를 사용한 전체 WGS 분석 파이프라인 수행</li>
+                <li><strong>JupyterLab 환경</strong>에서 Python을 활용한 생물정보학 분석</li>
+                <li><strong>농진청 슈퍼컴퓨터</strong>를 활용한 대용량 데이터 처리</li>
+                <li><strong>변이 호출</strong>부터 <strong>결과 해석</strong>까지 완전한 워크플로우 경험</li>
+            </ul>
+        </div>
+        
+        <div class="slide-grid">
+            <div class="section-header">📊 이론 및 준비</div>
+            
+            <div class="slide-card">
+                <div class="slide-title">1. 실습 환경 소개</div>
+                <div class="slide-description">JupyterLab 환경 설정 및 실습 데이터 준비</div>
+                <a href="slide01.html" class="slide-link">슬라이드 보기</a>
+            </div>
+            
+            <div class="slide-card">
+                <div class="slide-title">2. 데이터 탐색</div>
+                <div class="slide-description">FASTQ 파일 구조 이해 및 품질 평가</div>
+                <a href="slide02.html" class="slide-link">슬라이드 보기</a>
+            </div>
+            
+            <div class="slide-card">
+                <div class="slide-title">3. 품질 관리</div>
+                <div class="slide-description">FastQC, Trimmomatic을 이용한 전처리</div>
+                <a href="slide03.html" class="slide-link">슬라이드 보기</a>
+            </div>
+        </div>
+        
+        <div class="slide-grid">
+            <div class="practical-header">💻 실습 세션</div>
+            
+            <div class="slide-card" style="border-left-color: #f39c12;">
+                <div class="slide-title">실습 1: 데이터 탐색 및 품질 평가</div>
+                <div class="slide-description">Python으로 FASTQ 파일 분석 및 시각화</div>
+                <a href="slide04.html" class="slide-link">슬라이드 보기</a>
+            </div>
+            
+            <div class="slide-card" style="border-left-color: #f39c12;">
+                <div class="slide-title">실습 2: 품질 관리 및 전처리</div>
+                <div class="slide-description">어댑터 제거 및 품질 필터링 실습</div>
+                <a href="slide05.html" class="slide-link">슬라이드 보기</a>
+            </div>
+            
+            <div class="slide-card" style="border-left-color: #f39c12;">
+                <div class="slide-title">실습 3: 참조 게놈 정렬</div>
+                <div class="slide-description">BWA-MEM을 이용한 게놈 정렬 및 SAM/BAM 처리</div>
+                <a href="slide06.html" class="slide-link">슬라이드 보기</a>
+            </div>
+            
+            <div class="slide-card" style="border-left-color: #f39c12;">
+                <div class="slide-title">실습 4: 변이 호출</div>
+                <div class="slide-description">GATK HaplotypeCaller를 이용한 SNP/INDEL 검출</div>
+                <a href="slide07.html" class="slide-link">슬라이드 보기</a>
+            </div>
+            
+            <div class="slide-card" style="border-left-color: #f39c12;">
+                <div class="slide-title">실습 5: 결과 분석 및 시각화</div>
+                <div class="slide-description">VCF 파일 파싱 및 변이 패턴 분석</div>
+                <a href="slide08.html" class="slide-link">슬라이드 보기</a>
+            </div>
+        </div>
+        
+        <div class="info-box" style="background: #fff3cd; border-left-color: #ffc107;">
+            <h3>☁️ AWS 실습 환경</h3>
+            <ul>
+                <li><strong>EC2 인스턴스:</strong> t3.xlarge (4 vCPU, 16GB RAM)</li>
+                <li><strong>EBS 스토리지:</strong> 100GB</li>
+                <li><strong>운영체제:</strong> Ubuntu 22.04 LTS</li>
+                <li><strong>접속:</strong> 웹 브라우저 직접 접속 (predistributed ip address)</li>
+                <li><strong>JupyterLab:</strong> http://[predistributed-ip-address]:8888 (직접 접속)</li>
+                <li><strong>데이터 위치:</strong> /home/ubuntu/edu/</li>
+            </ul>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px;">
+            <a href="slide01.html" style="background: #27ae60; color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-size: 18px; font-weight: bold;">🚀 실습 시작하기</a>
+        </div>
+    </div>
+</body>
+</html>

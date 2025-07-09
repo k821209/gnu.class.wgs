@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 분석 파이프라인 - 전체 워크플로우</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #282c34; color: #abb2bf; border: 1px solid #3e4451; padding: 15px; border-radius: 5px; font-family: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace; margin: 15px 0; overflow-x: auto; }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+        
+        /* Workflow Diagram Specific Styles */
+        .workflow-diagram { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; margin: 40px 0; }
+        .workflow-step { display: flex; flex-direction: column; align-items: center; margin: 0 10px; }
+        .workflow-box { background: #e3f2fd; border: 2px solid #2196f3; padding: 15px; border-radius: 8px; min-width: 150px; height: 100px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 3px 3px 8px rgba(0,0,0,0.1); transition: all 0.3s ease; }
+        .workflow-box:hover { transform: translateY(-5px); box-shadow: 5px 5px 15px rgba(0,0,0,0.2); }
+        .workflow-box h4 { margin: 5px 0; color: #1976d2; font-size: 18px; }
+        .workflow-box p { font-size: 14px; color: #34495e; margin: 0; }
+        .workflow-box i { font-size: 28px; color: #1976d2; margin-bottom: 5px; }
+        .arrow { font-size: 40px; color: #3498db; margin: 0 5px; animation: bounceArrow 1.5s infinite; }
+
+        @keyframes bounceArrow {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(10px); }
+        }
+
+        /* Code block styles */
+        .code-block { 
+            background: #1e1e1e; 
+            border: 1px solid #333; 
+            padding: 20px; 
+            border-radius: 8px; 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            margin: 15px 0; 
+            color: #00ff00;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .code-block code { 
+            white-space: pre-wrap; 
+            color: #00ff00;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+            background: #555;
+        }
+        .copy-btn.copied {
+            background: #00ff00;
+            color: #000;
+        }
+        .env-section {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">WGS 분석 파이프라인: 전체 워크플로우</div>
+    <div class="slide-content">
+        <h2>📜 Raw Data에서 Variant까지의 여정</h2>
+        <p>WGS 분석은 원본 시퀀싱 데이터(FASTQ)에서 시작하여 생물학적 의미를 가지는 변이(Variant)를 찾아내는 다단계 과정입니다. 각 단계는 다음 단계의 입력 데이터 품질을 결정하므로 매우 중요합니다.</p>
+        
+        <div class="workflow-diagram">
+            <div class="workflow-step">
+                <div class="workflow-box">
+                    <h4><i class="fas fa-dna"></i> Raw Data (FASTQ)</h4>
+                    <p>시퀀서에서 생성된 원본 데이터</p>
+                </div>
+            </div>
+            <span class="arrow">➡️</span>
+            <div class="workflow-step">
+                <div class="workflow-box">
+                    <h4><i class="fas fa-chart-bar"></i> Quality Control (QC)</h4>
+                    <p>데이터 품질 평가 및 진단</p>
+                </div>
+            </div>
+            <span class="arrow">➡️</span>
+            <div class="workflow-step">
+                <div class="workflow-box">
+                    <h4><i class="fas fa-cut"></i> Pre-processing</h4>
+                    <p>불필요한 서열 제거 및 필터링</p>
+                </div>
+            </div>
+            <span class="arrow">➡️</span>
+            <div class="workflow-step">
+                <div class="workflow-box">
+                    <h4><i class="fas fa-align-left"></i> Alignment</h4>
+                    <p>참조 게놈에 리드 정렬</p>
+                </div>
+            </div>
+            <span class="arrow">➡️</span>
+            <div class="workflow-step">
+                <div class="workflow-box">
+                    <h4><i class="fas fa-tools"></i> Post-processing</h4>
+                    <p>정렬된 데이터 보정 및 정리</p>
+                </div>
+            </div>
+            <span class="arrow">➡️</span>
+            <div class="workflow-step">
+                <div class="workflow-box">
+                    <h4><i class="fas fa-search"></i> Variant Calling</h4>
+                    <p>유전적 변이 식별</p>
+                </div>
+            </div>
+        </div>
+
+        <h2>🔍 각 단계별 목적</h2>
+        <ul>
+            <li><strong>Raw Data (FASTQ):</strong> 시퀀서가 생성한 원본 염기 서열 및 품질 정보.</li>
+            <li><strong>Quality Control (QC):</strong> 원본 데이터의 품질을 평가하고 문제점을 진단. (e.g., FastQC)</li>
+            <li><strong>Pre-processing:</strong> 어댑터 서열, 낮은 품질의 염기 등 불필요한 부분을 제거. (e.g., Trimmomatic)</li>
+            <li><strong>Alignment:</strong> 처리된 리드를 참조 게놈(Reference Genome)에 정렬. (e.g., BWA-MEM)</li>
+            <li><strong>Post-processing:</strong> 정렬된 데이터(BAM)에서 중복 리드를 제거하고 정렬 품질을 보정. (e.g., SAMtools, Picard)</li>
+            <li><strong>Variant Calling:</strong> 참조 게놈과의 차이(변이)를 통계적으로 식별. (e.g., GATK HaplotypeCaller)</li>
+        </ul>
+
+        <h2>🐍 Conda 환경 설정 및 도구 설치</h2>
+        <p>WGS 분석에 필요한 모든 도구들을 Conda를 통해 체계적으로 관리하고 설치하는 방법을 알아봅시다.</p>
+
+        <div class="env-section">
+            <h3>📦 1. Conda 환경 생성</h3>
+            <p>분석 도구들 간의 의존성 충돌을 방지하기 위해 전용 환경을 생성합니다.</p>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># WGS 분석 전용 환경 생성
+conda create -n wgs-analysis python=3.9
+conda activate wgs-analysis
+
+# Bioconda 채널 추가 (생물정보학 도구들)
+conda config --add channels bioconda
+conda config --add channels conda-forge</code>
+            </div>
+        </div>
+
+        <div class="env-section">
+            <h3>🔧 2. 품질 평가 도구 설치</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># Short Read 품질 평가
+conda install fastqc
+
+# Long Read 품질 평가
+conda install nanoplot
+pip install longqc
+
+# MultiQC (여러 QC 결과 통합)
+conda install multiqc</code>
+            </div>
+        </div>
+
+        <div class="env-section">
+            <h3>✂️ 3. 전처리 도구 설치</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># Short Read 전처리
+conda install trimmomatic
+conda install fastp
+
+# Long Read 전처리
+conda install porechop
+conda install filtlong</code>
+            </div>
+        </div>
+
+        <div class="env-section">
+            <h3>🗃️ 4. 정렬 및 후처리 도구 설치</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># 정렬 도구
+conda install bwa
+conda install hisat2
+conda install minimap2  # Long read 정렬
+
+# SAM/BAM 처리
+conda install samtools
+conda install picard
+
+# 중복 제거 및 정렬 통계
+conda install bamtools</code>
+            </div>
+        </div>
+
+        <div class="env-section">
+            <h3>🔍 5. Variant Calling 도구 설치</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># GATK4 (주요 variant caller)
+conda install gatk4
+
+# 대안 variant callers
+conda install freebayes
+conda install bcftools
+
+# VCF 파일 처리
+conda install vcftools
+conda install bedtools</code>
+            </div>
+        </div>
+
+        <div class="env-section">
+            <h3>📊 6. 분석 및 시각화 도구</h3>
+            <div class="code-block">
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                <code># Python 분석 라이브러리
+conda install pandas numpy matplotlib seaborn
+conda install jupyter
+
+# R 및 Bioconductor (선택적)
+conda install r-base r-ggplot2
+conda install bioconductor-genomicranges</code>
+            </div>
+        </div>
+
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+            <h4 style="color: #1976d2; margin-top: 0;">💡 환경 관리 팁</h4>
+            <ul style="color: #34495e; margin: 10px 0;">
+                <li><strong>환경 활성화:</strong> <code>conda activate wgs-analysis</code></li>
+                <li><strong>환경 비활성화:</strong> <code>conda deactivate</code></li>
+                <li><strong>설치된 패키지 확인:</strong> <code>conda list</code></li>
+                <li><strong>환경 내보내기:</strong> <code>conda env export > environment.yml</code></li>
+                <li><strong>환경 복원:</strong> <code>conda env create -f environment.yml</code></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 1 / 5</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "index.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide02.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    function copyCode(button) {
+        const codeBlock = button.nextElementSibling;
+        const codeText = codeBlock.textContent.trim();
+        
+        navigator.clipboard.writeText(codeText).then(function() {
+            button.textContent = '복사됨!';
+            button.classList.add('copied');
+            setTimeout(function() {
+                button.textContent = '복사';
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(function() {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                button.textContent = '복사됨!';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.textContent = '복사';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실습 3: 참조 게놈 정렬 - BWA-MEM 정렬 및 BAM 파일 처리</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #3498db; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 14px; white-space: pre-wrap; border: 1px solid #444; position: relative; }
+        .code-block-container { position: relative; }
+        .copy-button { position: absolute; top: 10px; right: 10px; background: #444; color: #f8f8f2; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; opacity: 0.7; transition: opacity 0.2s; }
+        .copy-button:hover { opacity: 1; background: #555; }
+        .copy-button.copied { background: #27ae60; color: white; }
+        .copy-button.copied:after { content: " ✓"; }
+        
+        /* Syntax highlighting color classes */
+        .comment { color: #75715e; } /* Comments */
+        .keyword { color: #f92672; } /* Keywords */
+        .function { color: #a6e22e; } /* Function names */
+        .string { color: #e6db74; } /* Strings */
+        .number { color: #ae81ff; } /* Numbers */
+        .param { color: #fd971f; } /* Parameters */
+        .variable { color: #f8f8f2; } /* Variables */
+        .builtin { color: #a6e22e; } /* Built-in functions */
+        .operator { color: #f92672; } /* Operators */
+        .shebang { color: #75715e; } /* Shebang */
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #3498db; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #2980b9; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .setup-steps { background: #e8f4fd; border-left: 4px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .practical-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .exercise-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .result-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .warning-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .step-box { background: #ffffff; border: 2px solid #3498db; border-radius: 8px; padding: 15px; margin: 10px 0; position: relative; }
+        .step-box::before { content: "→"; position: absolute; right: -15px; top: 50%; transform: translateY(-50%); font-size: 24px; color: #3498db; }
+        .step-box:last-child::before { display: none; }
+        .terminal-output { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 13px; white-space: pre-wrap; }
+        .file-format-box { background: #ffffff; border: 2px solid #e67e22; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .alignment-stats { background: #e8f4fd; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .performance-tip { background: #f0f8ff; border-left: 4px solid #007bff; padding: 15px; margin: 15px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">🧬 실습 3: 참조 게놈 정렬</div>
+    <div class="slide-content">
+        <h2>🎯 실습 목표</h2>
+        <p>전처리된 FASTQ 파일을 참조 게놈에 정렬하고, BAM 파일을 생성하여 정렬 품질을 평가하는 실습을 진행합니다.</p>
+
+        <div class="comparison-table">
+            <div class="comparison-item">
+                <h4><i class="fas fa-bullseye"></i> 학습 목표</h4>
+                <ul>
+                    <li>BWA-MEM 정렬 알고리즘 이해</li>
+                    <li>참조 게놈 인덱스 생성</li>
+                    <li>SAM/BAM 파일 구조 이해</li>
+                    <li>정렬 품질 평가</li>
+                    <li>정렬 통계 분석</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #e74c3c;">
+                <h4><i class="fas fa-tools"></i> 사용 도구</h4>
+                <ul>
+                    <li><strong>BWA-MEM:</strong> 시퀀스 정렬 알고리즘</li>
+                    <li><strong>SAMtools:</strong> SAM/BAM 파일 처리</li>
+                    <li><strong>Picard:</strong> 중복 제거 및 품질 개선</li>
+                    <li><strong>Python:</strong> 정렬 통계 분석</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>📋 실습 워크플로우</h2>
+        <div class="practical-box">
+            <div class="step-box">
+                <h4><i class="fas fa-database"></i> 1단계: 참조 게놈 준비</h4>
+                <p>콩 참조 게놈 다운로드 및 BWA 인덱스 생성</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-sort"></i> 2단계: BWA-MEM 정렬</h4>
+                <p>전처리된 FASTQ 파일을 참조 게놈에 정렬</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-file-code"></i> 3단계: BAM 파일 처리</h4>
+                <p>SAM을 BAM으로 변환, 정렬 및 인덱스 생성</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-chart-bar"></i> 4단계: 정렬 품질 평가</h4>
+                <p>정렬 통계 분석 및 품질 평가</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-broom"></i> 5단계: 중복 제거</h4>
+                <p>PCR 중복 제거 및 최종 BAM 파일 생성</p>
+            </div>
+        </div>
+
+        <h2>🗂️ 1단계: 참조 게놈 준비</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-download"></i> 참조 게놈 다운로드</h3>
+            <p>실습에서는 콩(Glycine max) 참조 게놈을 사용합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# 참조 게놈 디렉토리 생성
+mkdir -p /home/ubuntu/edu/reference_genome
+cd /home/ubuntu/edu/reference_genome
+
+# 콩 참조 게놈 다운로드 (예시)
+wget -O soybean_reference.fasta "https://example.com/soybean_genome.fasta"
+
+# 파일 압축 해제 (필요시)
+gunzip -c soybean_reference.fasta.gz > soybean_reference.fasta
+
+# 참조 게놈 크기 확인
+ls -lh soybean_reference.fasta
+</div>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h3><i class="fas fa-tasks"></i> BWA 인덱스 생성</h3>
+            <p>BWA-MEM 정렬을 위해 참조 게놈의 인덱스를 생성해야 합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# BWA 인덱스 생성 (시간이 오래 걸릴 수 있음)
+bwa index soybean_reference.fasta
+
+# 생성된 인덱스 파일 확인
+ls -la soybean_reference.fasta.*
+</div>
+            </div>
+            
+            <div class="terminal-output">
+soybean_reference.fasta.amb
+soybean_reference.fasta.ann
+soybean_reference.fasta.bwt
+soybean_reference.fasta.pac
+soybean_reference.fasta.sa
+</div>
+        </div>
+
+        <h2>🔄 2단계: BWA-MEM 정렬</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-play"></i> 정렬 실행</h3>
+            <p>전처리된 FASTQ 파일을 참조 게놈에 정렬합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# 작업 디렉토리 설정
+cd /home/ubuntu/edu/soybean_data
+mkdir -p alignment_results
+
+# BWA-MEM 정렬 실행
+bwa mem -t 4 \
+    -R "@RG\tID:soybean_sample\tSM:soybean\tPL:illumina\tLB:lib1\tPU:unit1" \
+    /home/ubuntu/edu/reference_genome/soybean_reference.fasta \
+    trimmed_R1.fastq.gz \
+    trimmed_R2.fastq.gz \
+    > alignment_results/soybean_aligned.sam
+
+# 정렬 진행 상황 확인
+ls -lh alignment_results/
+</div>
+            </div>
+        </div>
+
+        <div class="performance-tip">
+            <h4><i class="fas fa-lightbulb"></i> 성능 최적화 팁</h4>
+            <ul>
+                <li><strong>-t 옵션:</strong> 사용할 CPU 코어 수 지정 (기본값: 1)</li>
+                <li><strong>-R 옵션:</strong> Read Group 정보 추가 (GATK 등에서 필요)</li>
+                <li><strong>메모리 사용량:</strong> 참조 게놈 크기에 따라 4-8GB 메모리 필요</li>
+                <li><strong>처리 시간:</strong> 데이터 크기에 따라 30분-2시간 소요</li>
+            </ul>
+        </div>
+
+        <h2>📁 3단계: BAM 파일 처리</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-exchange-alt"></i> SAM to BAM 변환</h3>
+            <p>SAM 파일을 BAM 파일로 변환하고 정렬합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# SAM을 BAM으로 변환 및 정렬
+samtools view -bS alignment_results/soybean_aligned.sam | \
+samtools sort -o alignment_results/soybean_sorted.bam
+
+# BAM 파일 인덱스 생성
+samtools index alignment_results/soybean_sorted.bam
+
+# 파일 크기 비교
+ls -lh alignment_results/soybean_aligned.sam
+ls -lh alignment_results/soybean_sorted.bam*
+</div>
+            </div>
+        </div>
+
+        <div class="file-format-box">
+            <h4><i class="fas fa-file-alt"></i> SAM/BAM 파일 구조</h4>
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #28a745;">
+                    <h4>SAM (Sequence Alignment Map)</h4>
+                    <ul>
+                        <li>텍스트 형식</li>
+                        <li>헤더 섹션 + 정렬 섹션</li>
+                        <li>사람이 읽을 수 있음</li>
+                        <li>파일 크기가 큼</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #007bff;">
+                    <h4>BAM (Binary Alignment Map)</h4>
+                    <ul>
+                        <li>바이너리 형식</li>
+                        <li>SAM의 압축된 형태</li>
+                        <li>빠른 처리 속도</li>
+                        <li>파일 크기가 작음</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h2>📊 4단계: 정렬 품질 평가</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-chart-line"></i> 정렬 통계 분석</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# 정렬 통계 확인
+samtools flagstat alignment_results/soybean_sorted.bam
+
+# 정렬 품질 상세 분석
+samtools stats alignment_results/soybean_sorted.bam > alignment_results/alignment_stats.txt
+
+# 커버리지 분석
+samtools depth alignment_results/soybean_sorted.bam | head -20
+</div>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h3><i class="fas fa-code"></i> Python을 이용한 정렬 통계 분석</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block python">
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import subprocess
+import numpy as np
+
+def analyze_alignment_stats(bam_file):
+    """BAM 파일의 정렬 통계를 분석합니다."""
+    
+    # samtools flagstat 실행
+    result = subprocess.run(['samtools', 'flagstat', bam_file], 
+                          capture_output=True, text=True)
+    
+    stats = {}
+    lines = result.stdout.strip().split('\n')
+    
+    for line in lines:
+        if 'total' in line:
+            stats['total_reads'] = int(line.split()[0])
+        elif 'mapped' in line and 'primary' not in line:
+            stats['mapped_reads'] = int(line.split()[0])
+        elif 'properly paired' in line:
+            stats['properly_paired'] = int(line.split()[0])
+        elif 'duplicates' in line:
+            stats['duplicates'] = int(line.split()[0])
+    
+    return stats
+
+def plot_alignment_summary(stats):
+    """정렬 통계를 시각화합니다."""
+    
+    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # 정렬 성공률
+    mapped_rate = (stats['mapped_reads'] / stats['total_reads']) * 100
+    paired_rate = (stats['properly_paired'] / stats['total_reads']) * 100
+    
+    categories = ['Mapped', 'Properly Paired', 'Duplicates']
+    values = [mapped_rate, paired_rate, 
+              (stats['duplicates'] / stats['total_reads']) * 100]
+    
+    axes[0].bar(categories, values, color=['#2ecc71', '#3498db', '#e74c3c'])
+    axes[0].set_ylabel('Percentage (%)')
+    axes[0].set_title('Alignment Quality Metrics')
+    axes[0].set_ylim(0, 100)
+    
+    # 리드 분포
+    read_counts = [stats['mapped_reads'], 
+                   stats['total_reads'] - stats['mapped_reads']]
+    labels = ['Mapped', 'Unmapped']
+    colors = ['#2ecc71', '#e74c3c']
+    
+    axes[1].pie(read_counts, labels=labels, colors=colors, autopct='%1.1f%%')
+    axes[1].set_title('Read Mapping Distribution')
+    
+    plt.tight_layout()
+    plt.savefig('alignment_summary.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    
+    return stats
+
+# 실행 예시
+bam_file = '/home/ubuntu/edu/soybean_data/alignment_results/soybean_sorted.bam'
+stats = analyze_alignment_stats(bam_file)
+plot_alignment_summary(stats)
+
+print("정렬 통계 요약:")
+print(f"전체 리드 수: {stats['total_reads']:,}")
+print(f"정렬된 리드 수: {stats['mapped_reads']:,}")
+print(f"정렬 성공률: {(stats['mapped_reads']/stats['total_reads'])*100:.2f}%")
+print(f"Properly paired: {(stats['properly_paired']/stats['total_reads'])*100:.2f}%")
+</div>
+            </div>
+        </div>
+
+        <div class="result-box">
+            <h4><i class="fas fa-chart-bar"></i> 예상 결과</h4>
+            <div class="terminal-output">
+정렬 통계 요약:
+전체 리드 수: 2,000,000
+정렬된 리드 수: 1,850,000 (92.5%)
+정렬 성공률: 92.50%
+Properly paired: 1,750,000 (87.5%)
+중복 리드: 150,000 (7.5%)
+            </div>
+        </div>
+
+        <h2>🧹 5단계: 중복 제거</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-broom"></i> Picard를 이용한 중복 제거</h3>
+            <p>PCR 중복을 제거하여 정확한 변이 호출을 위한 최종 BAM 파일을 생성합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# Picard를 이용한 중복 제거
+java -jar /opt/picard/picard.jar MarkDuplicates \
+    I=alignment_results/soybean_sorted.bam \
+    O=alignment_results/soybean_dedup.bam \
+    M=alignment_results/duplicate_metrics.txt \
+    REMOVE_DUPLICATES=true
+
+# 중복 제거된 BAM 파일 인덱스 생성
+samtools index alignment_results/soybean_dedup.bam
+
+# 중복 제거 전후 비교
+samtools flagstat alignment_results/soybean_sorted.bam
+samtools flagstat alignment_results/soybean_dedup.bam
+</div>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h3><i class="fas fa-tasks"></i> 실습 과제</h3>
+            <ol>
+                <li>정렬 성공률이 90% 이상인지 확인하세요</li>
+                <li>중복 제거 전후의 리드 수 변화를 비교하세요</li>
+                <li>참조 게놈의 커버리지 분포를 분석하세요</li>
+                <li>정렬 품질 점수 분포를 시각화하세요</li>
+            </ol>
+        </div>
+
+        <div class="warning-box">
+            <h4><i class="fas fa-exclamation-triangle"></i> 주의사항</h4>
+            <ul>
+                <li><strong>메모리 사용량:</strong> 대용량 파일 처리 시 충분한 메모리 확보</li>
+                <li><strong>디스크 공간:</strong> 임시 파일로 인한 디스크 공간 부족 주의</li>
+                <li><strong>Read Group 정보:</strong> 다음 단계 분석을 위해 필수</li>
+                <li><strong>파일 백업:</strong> 중간 결과 파일 백업 권장</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="nav-btn" onclick="window.location.href='slide05.html'">◀ 이전</button>
+    <button class="nav-btn" onclick="window.location.href='slide07.html'">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+    <button class="jump-btn" onclick="jumpToSlide()">이동</button>
+</div>
+
+<div class="slide-number">슬라이드 6</div>
+
+<script>
+    // 전체 화면 토글
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // 슬라이드 이동
+    function jumpToSlide() {
+        const slideNumber = prompt('이동할 슬라이드 번호를 입력하세요:');
+        if (slideNumber) {
+            window.location.href = `slide${slideNumber.padStart(2, '0')}.html`;
+        }
+    }
+
+    // 키보드 단축키
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') {
+            window.location.href = 'slide05.html';
+        } else if (e.key === 'ArrowRight') {
+            window.location.href = 'slide07.html';
+        } else if (e.key === 'f' || e.key === 'F') {
+            toggleFullscreen();
+        }
+    });
+
+    // 자동 복사 버튼 생성
+    document.addEventListener('DOMContentLoaded', function() {
+        const codeBlocks = document.querySelectorAll('.code-block');
+        codeBlocks.forEach(function(block) {
+            const button = document.createElement('button');
+            button.className = 'copy-button';
+            button.textContent = '복사';
+            button.onclick = function() {
+                navigator.clipboard.writeText(block.textContent).then(() => {
+                    button.classList.add('copied');
+                    setTimeout(() => button.classList.remove('copied'), 2000);
+                });
+            };
+            block.appendChild(button);
+        });
+    });
+
+    // 구문 강조
+    function highlightSyntax() {
+        const codeBlocks = document.querySelectorAll('.code-block');
+        
+        codeBlocks.forEach(function(block) {
+            let code = block.innerHTML;
+            
+            // 복사 버튼 제거 (임시)
+            const copyButton = block.querySelector('.copy-button');
+            if (copyButton) {
+                copyButton.remove();
+            }
+            
+            // 코드 블록 유형 확인
+            if (block.classList.contains('bash')) {
+                code = highlightBash(code);
+            } else if (block.classList.contains('python')) {
+                code = highlightPython(code);
+            }
+            
+            block.innerHTML = code;
+            
+            // 복사 버튼 다시 추가
+            if (copyButton) {
+                block.appendChild(copyButton);
+            }
+        });
+    }
+
+    function highlightBash(code) {
+        const lines = code.split('\n');
+        const highlightedLines = lines.map(line => {
+            // 주석 처리
+            if (line.trim().startsWith('#')) {
+                return `<span class="comment">${line}</span>`;
+            }
+            
+            // 명령어 강조
+            line = line.replace(/\b(bwa|samtools|java|mkdir|cd|wget|ls|gunzip|head)\b/g, '<span class="keyword">$1</span>');
+            
+            // 옵션 강조
+            line = line.replace(/\s(-[a-zA-Z]+)/g, ' <span class="param">$1</span>');
+            
+            // 파일 경로 강조
+            line = line.replace(/([\/\w\.-]+\.(bam|sam|fasta|fastq|gz|txt))/g, '<span class="string">$1</span>');
+            
+            return line;
+        });
+        
+        return highlightedLines.join('\n');
+    }
+
+    function highlightPython(code) {
+        // Python 키워드
+        code = code.replace(/\b(import|from|def|return|if|elif|else|for|while|try|except|finally|with|as|class|print|True|False|None)\b/g, '<span class="keyword">$1</span>');
+        
+        // 함수명
+        code = code.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g, '<span class="function">$1</span>(');
+        
+        // 문자열
+        code = code.replace(/(["'])([^"']*)\1/g, '<span class="string">$1$2$1</span>');
+        
+        // 주석
+        code = code.replace(/(#.*$)/gm, '<span class="comment">$1</span>');
+        
+        // 숫자
+        code = code.replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>');
+        
+        return code;
+    }
+
+    // 페이지 로드 시 구문 강조 적용
+    document.addEventListener('DOMContentLoaded', function() {
+        highlightSyntax();
+    });
+</script>
+
+</body>
+</html>

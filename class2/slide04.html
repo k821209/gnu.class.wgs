@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WGS 분석 파이프라인 - 후처리</title>
+    <style>
+
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide.active { display: block; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #2980b9; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { 
+            background: #1e1e1e; 
+            border: 1px solid #333; 
+            padding: 20px; 
+            border-radius: 8px; 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            margin: 15px 0; 
+            color: #00ff00;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .code-block::before {
+            content: "";
+            color: #00ff00;
+            font-weight: bold;
+        }
+        .code-block code { 
+            white-space: pre-wrap; 
+            color: #00ff00;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .copy-btn:hover {
+            opacity: 1;
+            background: #555;
+        }
+        .copy-btn.copied {
+            background: #00ff00;
+            color: #000;
+        }
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #2980b9; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #27ae60; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #229954; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .table th, .table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        .table th { background: #f8f9fa; font-weight: bold; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #3498db; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .image-placeholder { width: 100%; height: 300px; background: #ecf0f1; border: 2px dashed #bdc3c7; display: flex; align-items: center; justify-content: center; color: #7f8c8d; font-size: 16px; margin: 20px 0; border-radius: 8px; }
+    
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">단계 3: 정렬 후처리 (Post-processing)</div>
+    <div class="slide-content">
+        <h2>✨ 정렬된 데이터(BAM) 다듬기</h2>
+        <p>정렬 직후의 SAM/BAM 파일에는 분석의 정확도를 저해하는 요소들이 남아있습니다. 후처리 과정은 이러한 문제들을 해결하여 변이 검출의 신뢰도를 높이는 단계입니다.</p>
+        
+        <h3>🚨 왜 후처리가 필요한가?</h3>
+        <div class="comparison-table">
+            <div class="comparison-item" style="border-left-color: #e74c3c;">
+                <h4><i class="fas fa-exclamation-triangle"></i> 정렬 직후 문제점들</h4>
+                <ul>
+                    <li><strong>PCR 중복 리드:</strong> 동일한 DNA 단편이 여러 번 증폭되어 실제보다 높은 커버리지 생성</li>
+                    <li><strong>정렬 순서 혼재:</strong> 리드가 이름 순서로 정렬되어 있어 랜덤 액세스 불가</li>
+                    <li><strong>메타데이터 부족:</strong> 샘플 정보, 라이브러리 정보 등 누락으로 다운스트림 분석 방해</li>
+                    <li><strong>페어 정보 불일치:</strong> 좌표 정렬 후 mate 정보가 부정확하여 중복 검출 오류 발생</li>
+                    <li><strong>파일 크기:</strong> 압축되지 않은 SAM 파일로 인한 저장 공간 낭비</li>
+                </ul>
+            </div>
+            <div class="comparison-item" style="border-left-color: #28a745;">
+                <h4><i class="fas fa-check-circle"></i> 후처리 후 개선사항</h4>
+                <ul>
+                    <li><strong>정확한 커버리지:</strong> 중복 제거로 실제 시퀀싱 깊이 반영</li>
+                    <li><strong>빠른 액세스:</strong> 좌표 정렬 + 인덱싱으로 특정 영역 빠른 검색</li>
+                    <li><strong>완전한 메타데이터:</strong> 리드 그룹으로 샘플 추적 가능</li>
+                    <li><strong>정확한 페어 정보:</strong> mate 좌표 및 insert size 정보 수정으로 정확한 중복 검출</li>
+                    <li><strong>효율적 저장:</strong> BAM 압축으로 70-80% 공간 절약</li>
+                </ul>
+            </div>
+        </div>
+
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <h4 style="color: #856404; margin-top: 0;">💡 실제 영향 예시</h4>
+            <ul style="color: #856404; margin: 10px 0;">
+                <li><strong>중복 리드 미제거 시:</strong> 특정 위치에서 false positive 변이 호출 (커버리지 100x → 실제 30x)</li>
+                <li><strong>정렬 미수행 시:</strong> 1GB 영역 검색에 수 분 소요 → 정렬 후 수 초</li>
+                <li><strong>리드 그룹 부재 시:</strong> 멀티샘플 분석에서 샘플 구분 불가능</li>
+                <li><strong>Fixmate 미수행 시:</strong> 부정확한 mate 정보로 인해 중복 리드 20-30% 미검출</li>
+            </ul>
+        </div>
+
+        <div style="background: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2196f3;">
+            <h4 style="color: #1565c0; margin-top: 0;">🔧 Fixmate의 역할과 중요성</h4>
+            <p style="color: #1565c0; margin-bottom: 15px;">Paired-end 시퀀싱에서 좌표 정렬 후 mate 정보가 손상되는 문제를 해결하는 핵심 단계입니다.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                <div>
+                    <h5 style="color: #1565c0; margin: 0 0 10px 0;">❌ Fixmate 전 문제점</h5>
+                    <ul style="font-size: 14px; margin: 10px 0; padding-left: 20px; color: #1565c0;">
+                        <li>MPOS (mate position) 정보 부정확</li>
+                        <li>ISIZE (insert size) 계산 오류</li>
+                        <li>Mate 매핑 품질 정보 누락</li>
+                        <li>중복 검출 알고리즘 성능 저하</li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 style="color: #1565c0; margin: 0 0 10px 0;">✅ Fixmate 후 개선사항</h5>
+                    <ul style="font-size: 14px; margin: 10px 0; padding-left: 20px; color: #1565c0;">
+                        <li>정확한 mate 좌표 정보 복원</li>
+                        <li>올바른 insert size 계산</li>
+                        <li>완전한 SAM flags 설정</li>
+                        <li>효율적인 중복 마킹 가능</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="background: #bbdefb; padding: 10px; border-radius: 4px; margin-top: 15px;">
+                <strong style="color: #0d47a1;">-m 옵션의 효과:</strong>
+                <span style="color: #0d47a1; font-size: 14px;">
+                    중복 마킹을 위한 추가 정보를 태그로 저장하여 MarkDuplicates 성능을 20-30% 향상시킵니다.
+                </span>
+            </div>
+        </div>
+
+        <div class="tool-comparison">
+            <div class="tool-card">
+                <h3>SAMtools</h3>
+                <ul>
+                    <li>SAM/BAM/CRAM 파일을 다루는 필수 도구.</li>
+                    <li>파일 형식 변환, 정렬, 인덱싱 등 다양한 기능 제공.</li>
+                    <li><strong>주요 작업:</strong> SAM → BAM 변환, 좌표 기준 정렬, 페어 정보 수정, 인덱싱.</li>
+                </ul>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 1. SAM to BAM 변환
+samtools view -bS aligned.sam > aligned.bam
+
+# 2. 좌표 기준 정렬
+samtools sort aligned.bam -o sorted.bam
+
+# 3. Fixmate (페어 정보 수정)
+samtools fixmate -m sorted.bam fixmate.bam
+
+# 4. 인덱싱
+samtools index fixmate.bam</code>
+                </div>
+            </div>
+            <div class="tool-card">
+                <h3>Picard</h3>
+                <ul>
+                    <li>GATK와 함께 개발된 자바 기반의 BAM/SAM 파일 처리 도구.</li>
+                    <li>특히 중복 리드 제거와 통계 생성에 강력함.</li>
+                    <li><strong>주요 작업:</strong> 중복 리드 마킹, 리드 그룹 추가/수정.</li>
+                </ul>
+                <div class="code-block">
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                    <code># 1. 중복 리드 마킹 (Mark Duplicates)
+java -jar picard.jar MarkDuplicates \
+    I=sorted.bam \
+    O=dedup.bam \
+    M=marked_dup_metrics.txt
+
+# 2. 리드 그룹 추가 (AddOrReplaceReadGroups)
+java -jar picard.jar AddOrReplaceReadGroups \
+    I=dedup.bam O=final.bam \
+    RGID=group1 RGLB=lib1 RGPL=illumina RGPU=unit1 RGSM=sample1</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="jump-btn" onclick="jumpToFirst()">🏠 처음</button>
+    <button class="nav-btn" onclick="prevSlide()">◀ 이전</button>
+    <button class="nav-btn" onclick="nextSlide()">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ 전체화면</button>
+</div>
+
+<div class="slide-number">슬라이드 4 / 7</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide03.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide05.html";
+    }
+    
+    function jumpToFirst() {
+        window.location.href = "slide01.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    function copyCode(button) {
+        const codeBlock = button.nextElementSibling;
+        const codeText = codeBlock.textContent.trim();
+        
+        navigator.clipboard.writeText(codeText).then(function() {
+            button.textContent = '복사됨!';
+            button.classList.add('copied');
+            setTimeout(function() {
+                button.textContent = '복사';
+                button.classList.remove('copied');
+            }, 2000);
+        }).catch(function() {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = codeText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                button.textContent = '복사됨!';
+                button.classList.add('copied');
+                setTimeout(function() {
+                    button.textContent = '복사';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+            document.body.removeChild(textArea);
+        });
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToFirst();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+</script>
+
+</body>
+</html>
