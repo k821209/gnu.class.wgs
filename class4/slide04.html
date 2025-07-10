@@ -87,18 +87,18 @@
         <h2>📂 실습 데이터 준비</h2>
         <div class="setup-steps">
             <h3><i class="fas fa-database"></i> 데이터 디렉토리 확인</h3>
-            <p>AWS EC2 인스턴스의 <code>/home/ubuntu/edu/soybean_data/</code> 디렉토리에 실습용 FASTQ 파일이 준비되어 있습니다.</p>
+            <p>AWS EC2 인스턴스의 <code>/home/ubuntu/edu/raw_data/</code> 디렉토리에 실습용 FASTQ 파일이 준비되어 있습니다.</p>
             
             <div class="code-block-container">
                 <div class="code-block bash">
 # 데이터 디렉토리 확인
-ls -la /home/ubuntu/edu/soybean_data/
+ls -la /home/ubuntu/edu/raw_data/
 
 # 파일 크기 확인
-du -sh /home/ubuntu/edu/soybean_data/*
+du -sh /home/ubuntu/edu/raw_data/*
 
 # FASTQ 파일 압축 확인
-file /home/ubuntu/edu/soybean_data/*.fastq.gz
+file /home/ubuntu/edu/raw_data/*.fastq.gz
 </div>
             </div>
         </div>
@@ -111,6 +111,9 @@ file /home/ubuntu/edu/soybean_data/*.fastq.gz
             <div class="code-block-container">
                 <div class="code-block python">
 # 필수 라이브러리 가져오기
+# !pip install koreanize-matplotlib 터미널에 입력하여 설치
+# 설치 후 import로 불러오기
+
 import gzip
 import os
 import pandas as pd
@@ -120,6 +123,7 @@ import seaborn as sns
 from collections import Counter, defaultdict
 from pathlib import Path
 import warnings
+import koreanize_matplotlib
 warnings.filterwarnings('ignore')
 
 # 그래프 스타일 설정
@@ -177,7 +181,7 @@ def explore_fastq_files(data_dir):
     return file_info
 
 # 실습 데이터 탐색
-data_directory = "/home/ubuntu/edu/soybean_data"
+data_directory = "/home/ubuntu/edu/raw_data"
 file_info = explore_fastq_files(data_directory)
 </div>
             </div>

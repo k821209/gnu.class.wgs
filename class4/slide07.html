@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실습 4: 변이 호출 - GATK HaplotypeCaller를 이용한 변이 검출</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { font-family: 'Malgun Gothic', Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+        .slide { width: 100%; height: 100vh; display: block; padding: 40px; box-sizing: border-box; background: white; }
+        .slide-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 30px; border-bottom: 3px solid #9b59b6; padding-bottom: 10px; }
+        .slide-content { font-size: 18px; line-height: 1.6; color: #34495e; }
+        .slide-content h2 { color: #9b59b6; font-size: 24px; margin-top: 30px; }
+        .slide-content h3 { color: #e74c3c; font-size: 20px; margin-top: 20px; }
+        .slide-content ul { margin: 15px 0; padding-left: 30px; }
+        .slide-content li { margin: 8px 0; }
+        .highlight { background: #fff3cd; padding: 3px 8px; border-radius: 3px; }
+        .code-block { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 14px; white-space: pre-wrap; border: 1px solid #444; position: relative; }
+        .code-block-container { position: relative; }
+        .copy-button { position: absolute; top: 10px; right: 10px; background: #444; color: #f8f8f2; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; opacity: 0.7; transition: opacity 0.2s; }
+        .copy-button:hover { opacity: 1; background: #555; }
+        .copy-button.copied { background: #27ae60; color: white; }
+        .copy-button.copied:after { content: " ✓"; }
+        
+        /* Syntax highlighting color classes */
+        .comment { color: #75715e; } /* Comments */
+        .keyword { color: #f92672; } /* Keywords */
+        .function { color: #a6e22e; } /* Function names */
+        .string { color: #e6db74; } /* Strings */
+        .number { color: #ae81ff; } /* Numbers */
+        .param { color: #fd971f; } /* Parameters */
+        .variable { color: #f8f8f2; } /* Variables */
+        .builtin { color: #a6e22e; } /* Built-in functions */
+        .operator { color: #f92672; } /* Operators */
+        .shebang { color: #75715e; } /* Shebang */
+        .navigation { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        .nav-btn { background: #9b59b6; color: white; border: none; padding: 10px 20px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .nav-btn:hover { background: #8e44ad; }
+        .fullscreen-btn { background: #e74c3c; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .fullscreen-btn:hover { background: #c0392b; }
+        .jump-btn { background: #3498db; color: white; border: none; padding: 10px 15px; margin: 0 5px; border-radius: 5px; cursor: pointer; }
+        .jump-btn:hover { background: #2980b9; }
+        .slide-number { position: fixed; bottom: 20px; left: 20px; color: #7f8c8d; font-size: 14px; }
+        .comparison-table { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+        .comparison-item { background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #9b59b6; }
+        .comparison-item h4 { margin: 0 0 10px 0; color: #2c3e50; }
+        .setup-steps { background: #e8f4fd; border-left: 4px solid #3498db; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .practical-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin: 20px 0; }
+        .exercise-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .result-box { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .warning-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 20px; margin: 20px 0; border-radius: 8px; }
+        .step-box { background: #ffffff; border: 2px solid #9b59b6; border-radius: 8px; padding: 15px; margin: 10px 0; position: relative; }
+        .step-box::before { content: "→"; position: absolute; right: -15px; top: 50%; transform: translateY(-50%); font-size: 24px; color: #9b59b6; }
+        .step-box:last-child::before { display: none; }
+        .terminal-output { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; margin: 15px 0; font-size: 13px; white-space: pre-wrap; }
+        .gatk-flow { background: #ffffff; border: 2px solid #e67e22; border-radius: 8px; padding: 15px; margin: 15px 0; }
+        .variant-types { background: #f3e5f5; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .performance-tip { background: #f0f8ff; border-left: 4px solid #007bff; padding: 15px; margin: 15px 0; border-radius: 8px; }
+        .vcf-example { background: #1e1e1e; color: #f8f8f2; padding: 12px; border-radius: 6px; font-family: 'Courier New', monospace; font-size: 11px; margin: 15px 0; }
+        .statistics-box { background: #e8f5e8; border-left: 4px solid #28a745; padding: 15px; margin: 15px 0; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div class="slide">
+    <div class="slide-title">🧬 실습 4: 변이 호출</div>
+    <div class="slide-content">
+        <h2>🎯 실습 목표</h2>
+        <p>정렬된 BAM 파일을 사용하여 GATK HaplotypeCaller로 변이를 호출하고, VCF 파일을 생성하여 변이를 분석하는 실습을 진행합니다.</p>
+
+        <div class="comparison-table">
+            <div class="comparison-item">
+                <h4><i class="fas fa-bullseye"></i> 학습 목표</h4>
+                <ul>
+                    <li>GATK HaplotypeCaller 사용법</li>
+                    <li>gVCF와 VCF 파일 생성</li>
+                    <li>변이 호출 파라미터 이해</li>
+                    <li>VCF 파일 구조 분석</li>
+                    <li>변이 통계 및 품질 평가</li>
+                </ul>
+            </div>
+            
+            <div class="comparison-item" style="border-left-color: #e74c3c;">
+                <h4><i class="fas fa-tools"></i> 사용 도구</h4>
+                <ul>
+                    <li><strong>GATK HaplotypeCaller:</strong> 변이 호출 알고리즘</li>
+                    <li><strong>bcftools:</strong> VCF 파일 처리 및 분석</li>
+                    <li><strong>SnpEff:</strong> 변이 주석 및 기능 예측</li>
+                    <li><strong>Python:</strong> 변이 통계 분석 및 시각화</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2>📋 실습 워크플로우</h2>
+        <div class="practical-box">
+            <div class="step-box">
+                <h4><i class="fas fa-cog"></i> 1단계: GATK 환경 설정</h4>
+                <p>GATK 설치 확인 및 참조 게놈 준비</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-dna"></i> 2단계: HaplotypeCaller 실행</h4>
+                <p>BAM 파일에서 gVCF 형태로 변이 호출</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-filter"></i> 3단계: GenotypeGVCFs 실행</h4>
+                <p>gVCF를 최종 VCF로 변환</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-chart-bar"></i> 4단계: 변이 통계 분석</h4>
+                <p>호출된 변이의 유형별 통계 및 품질 평가</p>
+            </div>
+
+            <div class="step-box">
+                <h4><i class="fas fa-tags"></i> 5단계: 변이 주석</h4>
+                <p>SnpEff를 이용한 변이 기능 예측</p>
+            </div>
+        </div>
+
+        <h2>⚙️ 1단계: GATK 환경 설정</h2>
+        <div class="setup-steps">
+            <h3><i class="fas fa-check-circle"></i> GATK 설치 확인</h3>
+            <p>GATK이 올바르게 설치되어 있는지 확인하고 버전을 체크합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# GATK 버전 확인
+gatk --version
+
+# 또는 Java 기반 실행
+java -jar /opt/gatk/gatk-package-4.3.0.0-local.jar --version
+
+# 도움말 확인
+gatk --help
+</div>
+            </div>
+        </div>
+
+        <div class="setup-steps">
+            <h3><i class="fas fa-database"></i> 참조 게놈 인덱스 준비</h3>
+            <p>GATK에서 사용할 참조 게놈 인덱스를 생성합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# 작업 디렉토리 이동
+cd /home/ubuntu/edu/reference
+
+# FASTA 인덱스 생성 (이미 있으면 생략)
+samtools faidx soybean_genome.fa
+
+# GATK 딕셔너리 생성
+gatk CreateSequenceDictionary \
+    -R soybean_genome.fa \
+    -O soybean_genome.dict
+
+# 생성된 파일 확인
+ls -la soybean_genome.fa.*
+ls -la soybean_genome.dict
+</div>
+            </div>
+            
+            <div class="terminal-output">
+soybean_genome.fa
+soybean_genome.fa.fai
+soybean_genome.dict
+</div>
+        </div>
+
+        <h2>🧬 2단계: HaplotypeCaller 실행</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-play"></i> gVCF 모드로 변이 호출</h3>
+            <p>개별 샘플의 gVCF를 생성합니다. 이는 나중에 다중 샘플 분석에 유용합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# 결과 디렉토리 생성
+cd /home/ubuntu/edu/
+mkdir -p variant_calling
+
+# GATK HaplotypeCaller 실행 (gVCF 모드)
+gatk HaplotypeCaller \
+    -R /home/ubuntu/edu/reference/soybean_genome.fa \
+    -I alignment_results/soybean_sorted.bam \
+    -O variant_calling/soybean_raw.g.vcf.gz \
+    -ERC GVCF \
+    --native-pair-hmm-threads 4
+
+# 진행 상황 확인
+ls -lh variant_calling/
+</div>
+            </div>
+        </div>
+
+        <div class="gatk-flow">
+            <h4><i class="fas fa-info-circle"></i> GATK HaplotypeCaller 주요 옵션</h4>
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #28a745;">
+                    <h4>필수 매개변수</h4>
+                    <ul>
+                        <li><strong>-R:</strong> 참조 게놈 FASTA 파일</li>
+                        <li><strong>-I:</strong> 입력 BAM 파일</li>
+                        <li><strong>-O:</strong> 출력 VCF/gVCF 파일</li>
+                        <li><strong>-ERC GVCF:</strong> gVCF 모드 활성화</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #f39c12;">
+                    <h4>성능 옵션</h4>
+                    <ul>
+                        <li><strong>--native-pair-hmm-threads:</strong> 스레드 수</li>
+                        <li><strong>샘플 이름:</strong> BAM 파일의 Read Group에서 자동 추출</li>
+                        <li><strong>-L:</strong> 특정 영역만 분석</li>
+                        <li><strong>--tmp-dir:</strong> 임시 디렉토리 지정</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h2>🔄 3단계: GenotypeGVCFs 실행</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-exchange-alt"></i> gVCF를 최종 VCF로 변환</h3>
+            <p>gVCF 파일을 최종 분석 가능한 VCF 파일로 변환합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# GenotypeGVCFs 실행
+gatk GenotypeGVCFs \
+    -R /home/ubuntu/edu/reference/soybean_genome.fa \
+    -V variant_calling/soybean_raw.g.vcf.gz \
+    -O variant_calling/soybean_gatk.vcf.gz
+
+# VCF 인덱스 생성
+gatk IndexFeatureFile \
+    -I variant_calling/soybean_gatk.vcf.gz
+
+# 파일 크기 확인
+ls -lh variant_calling/*.vcf*
+</div>
+            </div>
+        </div>
+
+        <h2>🛠️ 대안: bcftools를 이용한 변이 호출</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-tools"></i> bcftools mpileup + call 파이프라인</h3>
+            <p>GATK 대신 bcftools를 사용한 변이 호출 방법입니다. 더 빠르고 메모리 효율적입니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# bcftools mpileup으로 변이 호출
+bcftools mpileup \
+    -f /home/ubuntu/edu/reference/soybean_genome.fa \
+    -q 20 \
+    -Q 20 \
+    -a FORMAT/DP,FORMAT/AD \
+    alignment_results/soybean_sorted.bam | \
+bcftools call \
+    -mv \
+    -Oz \
+    -o variant_calling/soybean_bcftools.vcf.gz
+
+# VCF 인덱스 생성
+bcftools index variant_calling/soybean_bcftools.vcf.gz
+
+# 변이 정규화 (선택사항)
+bcftools norm \
+    -f /home/ubuntu/edu/reference/soybean_genome.fa \
+    -m -any \
+    variant_calling/soybean_bcftools.vcf.gz \
+    -Oz -o variant_calling/soybean_bcftools_norm.vcf.gz
+
+bcftools index variant_calling/soybean_bcftools_norm.vcf.gz
+</div>
+            </div>
+        </div>
+
+        <div class="gatk-flow">
+            <h4><i class="fas fa-balance-scale"></i> GATK vs bcftools 비교</h4>
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #9b59b6;">
+                    <h4><i class="fas fa-dna"></i> GATK HaplotypeCaller</h4>
+                    <ul>
+                        <li><strong>장점:</strong> 높은 정확도, gVCF 지원</li>
+                        <li><strong>단점:</strong> 높은 메모리 사용량, 느림</li>
+                        <li><strong>적합:</strong> 고품질 분석, 다중 샘플</li>
+                        <li><strong>특징:</strong> 로컬 어셈블리 기반</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #3498db;">
+                    <h4><i class="fas fa-tools"></i> bcftools mpileup</h4>
+                    <ul>
+                        <li><strong>장점:</strong> 빠른 속도, 낮은 메모리 사용</li>
+                        <li><strong>단점:</strong> 상대적으로 낮은 정확도</li>
+                        <li><strong>적합:</strong> 빠른 스크리닝, 대용량 데이터</li>
+                        <li><strong>특징:</strong> 통계적 모델 기반</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h3><i class="fas fa-microscope"></i> bcftools 상세 매개변수</h3>
+            
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #28a745;">
+                    <h4>mpileup 옵션</h4>
+                    <ul>
+                        <li><strong>-f:</strong> 참조 게놈 FASTA 파일</li>
+                        <li><strong>-q:</strong> 최소 매핑 품질 (기본값: 0)</li>
+                        <li><strong>-Q:</strong> 최소 염기 품질 (기본값: 13)</li>
+                        <li><strong>-a:</strong> 추가 주석 정보</li>
+                        <li><strong>-d:</strong> 최대 깊이 (기본값: 250)</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #f39c12;">
+                    <h4>call 옵션</h4>
+                    <ul>
+                        <li><strong>-m:</strong> 다중 대립유전자 모델</li>
+                        <li><strong>-v:</strong> 변이만 출력</li>
+                        <li><strong>-Oz:</strong> gzip 압축 출력</li>
+                        <li><strong>-o:</strong> 출력 파일명</li>
+                        <li><strong>-c:</strong> 컨센서스 모델 (대안)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h3><i class="fas fa-eye"></i> VCF 파일 미리보기 및 비교</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# GATK 결과 확인
+echo "=== GATK 결과 ==="
+bcftools view -h variant_calling/soybean_gatk.vcf.gz | head -20
+bcftools view -H variant_calling/soybean_gatk.vcf.gz | head -5
+
+echo "=== bcftools 결과 ==="
+bcftools view -h variant_calling/soybean_bcftools.vcf.gz | head -20
+bcftools view -H variant_calling/soybean_bcftools.vcf.gz | head -5
+
+# 변이 개수 비교
+echo "=== 변이 개수 비교 ==="
+echo "GATK 변이 수:"
+bcftools stats variant_calling/soybean_gatk.vcf.gz | grep "^SN"
+
+echo "bcftools 변이 수:"
+bcftools stats variant_calling/soybean_bcftools.vcf.gz | grep "^SN"
+</div>
+            </div>
+        </div>
+
+        <h2>📊 4단계: 변이 통계 분석</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-chart-line"></i> Python을 이용한 변이 분석</h3>
+            
+            <div class="code-block-container">
+                <div class="code-block python">
+# !pip install koreanize-matplotlib 터미널에 입력하여 설치
+# 설치 후 import로 불러오기
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import subprocess
+import numpy as np
+from collections import Counter
+import gzip
+import koreanize_matplotlib
+
+def analyze_vcf_statistics(vcf_file):
+    """VCF 파일의 변이 통계를 분석합니다."""
+    
+    # bcftools stats 실행
+    result = subprocess.run(['bcftools', 'stats', vcf_file], 
+                          capture_output=True, text=True)
+    
+    stats = {}
+    lines = result.stdout.strip().split('\n')
+    
+    for line in lines:
+        if line.startswith('SN'):
+            parts = line.split('\t')
+            if len(parts) >= 4:
+                key = parts[2].strip(':')
+                value = parts[3]
+                stats[key] = value
+    
+    return stats
+
+def parse_vcf_variants(vcf_file):
+    """VCF 파일에서 변이 정보를 파싱합니다."""
+    
+    variants = []
+    
+    # gzip 파일인지 확인
+    if vcf_file.endswith('.gz'):
+        file_opener = gzip.open
+        mode = 'rt'
+    else:
+        file_opener = open
+        mode = 'r'
+    
+    with file_opener(vcf_file, mode) as f:
+        for line in f:
+            if line.startswith('#'):
+                continue
+                
+            fields = line.strip().split('\t')
+            if len(fields) < 8:
+                continue
+                
+            chrom = fields[0]
+            pos = int(fields[1])
+            ref = fields[3]
+            alt = fields[4]
+            qual = float(fields[5]) if fields[5] != '.' else 0
+            info = fields[7]
+            
+            # 변이 유형 결정
+            if len(ref) == 1 and len(alt) == 1:
+                variant_type = 'SNP'
+            elif len(ref) > len(alt):
+                variant_type = 'Deletion'
+            elif len(ref) < len(alt):
+                variant_type = 'Insertion'
+            else:
+                variant_type = 'Complex'
+            
+            # DP 정보 추출
+            dp = 0
+            for info_field in info.split(';'):
+                if info_field.startswith('DP='):
+                    dp = int(info_field.split('=')[1])
+                    break
+            
+            variants.append({
+                'chrom': chrom,
+                'pos': pos,
+                'ref': ref,
+                'alt': alt,
+                'qual': qual,
+                'type': variant_type,
+                'depth': dp
+            })
+    
+    return pd.DataFrame(variants)
+
+def plot_variant_analysis(df):
+    """변이 분석 결과를 시각화합니다."""
+    
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
+    
+    # 변이 유형별 개수
+    type_counts = df['type'].value_counts()
+    axes[0, 0].pie(type_counts.values, labels=type_counts.index, autopct='%1.1f%%')
+    axes[0, 0].set_title('변이 유형별 분포')
+    
+    # 염색체별 변이 개수
+    chrom_counts = df['chrom'].value_counts().head(10)
+    axes[0, 1].bar(range(len(chrom_counts)), chrom_counts.values)
+    axes[0, 1].set_xticks(range(len(chrom_counts)))
+    axes[0, 1].set_xticklabels(chrom_counts.index, rotation=45)
+    axes[0, 1].set_title('염색체별 변이 개수 (상위 10개)')
+    axes[0, 1].set_ylabel('변이 개수')
+    
+    # 품질 점수 분포
+    axes[1, 0].hist(df[df['qual'] > 0]['qual'], bins=50, alpha=0.7)
+    axes[1, 0].set_title('변이 품질 점수 분포')
+    axes[1, 0].set_xlabel('QUAL Score')
+    axes[1, 0].set_ylabel('빈도')
+    axes[1, 0].axvline(x=30, color='red', linestyle='--', 
+                       label='품질 임계값 (Q30)')
+    axes[1, 0].legend()
+    
+    # 깊이 분포
+    depth_data = df[df['depth'] > 0]['depth']
+    axes[1, 1].hist(depth_data, bins=50, alpha=0.7)
+    axes[1, 1].set_title('변이 깊이 분포')
+    axes[1, 1].set_xlabel('Read Depth')
+    axes[1, 1].set_ylabel('빈도')
+    axes[1, 1].axvline(x=depth_data.mean(), color='red', 
+                       linestyle='--', label=f'평균 깊이: {depth_data.mean():.1f}')
+    axes[1, 1].legend()
+    
+    plt.tight_layout()
+    plt.savefig('variant_analysis.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
+def compare_variant_callers(gatk_file, bcftools_file):
+    """두 변이 호출 방법을 비교합니다."""
+    
+    print("🔬 GATK vs bcftools 변이 호출 비교")
+    print("=" * 60)
+    
+    # 각각 분석
+    gatk_stats = analyze_vcf_statistics(gatk_file)
+    bcftools_stats = analyze_vcf_statistics(bcftools_file)
+    
+    gatk_df = parse_vcf_variants(gatk_file)
+    bcftools_df = parse_vcf_variants(bcftools_file)
+    
+    # 비교 표 생성
+    comparison_data = {
+        'Method': ['GATK', 'bcftools'],
+        'Total_Variants': [len(gatk_df), len(bcftools_df)],
+        'SNPs': [len(gatk_df[gatk_df['type'] == 'SNP']), 
+                len(bcftools_df[bcftools_df['type'] == 'SNP'])],
+        'INDELs': [len(gatk_df[gatk_df['type'] != 'SNP']), 
+                  len(bcftools_df[bcftools_df['type'] != 'SNP'])],
+        'Avg_Quality': [gatk_df[gatk_df['qual'] > 0]['qual'].mean(),
+                       bcftools_df[bcftools_df['qual'] > 0]['qual'].mean()],
+        'Avg_Depth': [gatk_df[gatk_df['depth'] > 0]['depth'].mean(),
+                     bcftools_df[bcftools_df['depth'] > 0]['depth'].mean()]
+    }
+    
+    comp_df = pd.DataFrame(comparison_data)
+    print("\n📊 변이 호출 방법 비교:")
+    print(comp_df.to_string(index=False))
+    
+    # 겹치는 변이 분석
+    gatk_positions = set(zip(gatk_df['chrom'], gatk_df['pos']))
+    bcftools_positions = set(zip(bcftools_df['chrom'], bcftools_df['pos']))
+    
+    overlap = len(gatk_positions & bcftools_positions)
+    gatk_only = len(gatk_positions - bcftools_positions)
+    bcftools_only = len(bcftools_positions - gatk_positions)
+    
+    print(f"\n🎯 변이 위치 겹침 분석:")
+    print(f"공통 변이: {overlap:,}")
+    print(f"GATK 전용: {gatk_only:,}")
+    print(f"bcftools 전용: {bcftools_only:,}")
+    print(f"겹침률: {overlap/len(gatk_positions | bcftools_positions)*100:.1f}%")
+    
+    return comp_df
+
+# 분석 실행
+gatk_file = '/home/ubuntu/edu/raw_data/variant_calling/soybean_gatk.vcf.gz'
+bcftools_file = '/home/ubuntu/edu/raw_data/variant_calling/soybean_bcftools.vcf.gz'
+
+# 개별 분석
+print("🧬 GATK 변이 호출 통계:")
+print("=" * 50)
+gatk_stats = analyze_vcf_statistics(gatk_file)
+for key, value in gatk_stats.items():
+    if 'number of' in key.lower() or 'SNPs' in key or 'indels' in key:
+        print(f"{key}: {value}")
+
+gatk_df = parse_vcf_variants(gatk_file)
+print(f"\n📊 GATK 상세 분석:")
+print(f"총 변이 수: {len(gatk_df):,}")
+print(f"SNP: {len(gatk_df[gatk_df['type'] == 'SNP']):,}")
+print(f"Insertion: {len(gatk_df[gatk_df['type'] == 'Insertion']):,}")
+print(f"Deletion: {len(gatk_df[gatk_df['type'] == 'Deletion']):,}")
+print(f"평균 품질 점수: {gatk_df[gatk_df['qual'] > 0]['qual'].mean():.2f}")
+print(f"평균 깊이: {gatk_df[gatk_df['depth'] > 0]['depth'].mean():.1f}")
+
+# 비교 분석
+comparison_results = compare_variant_callers(gatk_file, bcftools_file)
+
+# 시각화 (GATK 결과)
+plot_variant_analysis(gatk_df)
+</div>
+            </div>
+        </div>
+
+        <div class="result-box">
+            <h4><i class="fas fa-chart-bar"></i> 예상 결과</h4>
+            <div class="terminal-output">
+🧬 GATK 변이 호출 통계:
+==================================================
+number of records: 15,234
+number of SNPs: 12,456
+number of indels: 2,778
+number of multiallelic sites: 342
+
+📊 GATK 상세 분석:
+총 변이 수: 15,234
+SNP: 12,456
+Insertion: 1,389
+Deletion: 1,389
+평균 품질 점수: 45.6
+평균 깊이: 28.3
+
+🔬 GATK vs bcftools 변이 호출 비교
+============================================================
+📊 변이 호출 방법 비교:
+   Method  Total_Variants   SNPs  INDELs  Avg_Quality  Avg_Depth
+     GATK           15234  12456    2778         45.6       28.3
+ bcftools           18567  14892    3675         38.2       26.8
+
+🎯 변이 위치 겹침 분석:
+공통 변이: 13,845
+GATK 전용: 1,389
+bcftools 전용: 4,722
+겹침률: 81.2%
+            </div>
+        </div>
+
+        <h2>🏷️ 5단계: 변이 주석 (SnpEff)</h2>
+        <div class="practical-box">
+            <h3><i class="fas fa-tags"></i> 변이 기능 예측 및 주석</h3>
+            <p>SnpEff를 사용하여 변이가 유전자에 미치는 영향을 예측합니다.</p>
+            
+            <div class="code-block-container">
+                <div class="code-block bash">
+# SnpEff 데이터베이스 확인 (콩 게놈)
+snpEff databases | grep -i glycine
+
+# 변이 주석 실행 (예시: 일반적인 식물 데이터베이스 사용)
+snpEff -v Glycine_max \
+    variant_calling/soybean_raw.vcf.gz > \
+    variant_calling/soybean_annotated.vcf
+
+# 주석 통계 확인
+snpEff -stats variant_calling/snpEff_summary.html \
+    Glycine_max \
+    variant_calling/soybean_raw.vcf.gz > \
+    variant_calling/soybean_annotated.vcf
+</div>
+            </div>
+        </div>
+
+        <div class="variant-types">
+            <h4><i class="fas fa-dna"></i> 변이 기능 분류</h4>
+            <div class="comparison-table">
+                <div class="comparison-item" style="border-left-color: #dc3545;">
+                    <h4>높은 영향 (HIGH)</h4>
+                    <ul>
+                        <li><strong>STOP_GAINED:</strong> 조기 종료 코돈</li>
+                        <li><strong>STOP_LOST:</strong> 종료 코돈 손실</li>
+                        <li><strong>START_LOST:</strong> 시작 코돈 손실</li>
+                        <li><strong>FRAME_SHIFT:</strong> 프레임시프트 돌연변이</li>
+                    </ul>
+                </div>
+                
+                <div class="comparison-item" style="border-left-color: #f39c12;">
+                    <h4>중간 영향 (MODERATE)</h4>
+                    <ul>
+                        <li><strong>MISSENSE:</strong> 아미노산 변화</li>
+                        <li><strong>CODON_DELETION:</strong> 코돈 결실</li>
+                        <li><strong>CODON_INSERTION:</strong> 코돈 삽입</li>
+                        <li><strong>SPLICE_SITE:</strong> 스플라이싱 부위</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="exercise-box">
+            <h3><i class="fas fa-tasks"></i> 실습 과제</h3>
+            <ol>
+                <li>GATK와 bcftools 변이 호출 성공률을 비교하세요</li>
+                <li>두 방법에서 SNP와 INDEL의 비율 차이를 분석하세요</li>
+                <li>품질 점수 분포를 확인하고 각 방법의 필터링 기준을 설정하세요</li>
+                <li>염색체별 변이 밀도를 두 방법으로 비교 분석하세요</li>
+                <li>공통 변이와 방법별 특이 변이의 특성을 분석하세요</li>
+                <li>처리 시간과 메모리 사용량을 비교해보세요</li>
+                <li>주석된 변이 중 기능적 영향이 큰 변이를 찾아보세요</li>
+            </ol>
+        </div>
+
+        <div class="statistics-box">
+            <h4><i class="fas fa-info-circle"></i> 식물 게놈 변이 호출 특성</h4>
+            <ul>
+                <li><strong>SNP 밀도:</strong> 콩 게놈에서 약 1-5 SNP/kb 예상</li>
+                <li><strong>INDEL 비율:</strong> 전체 변이의 15-25% 정도</li>
+                <li><strong>Ti/Tv 비율:</strong> Transition/Transversion 약 2.0-2.5</li>
+                <li><strong>이형접합도:</strong> 자가수분 식물에서 상대적으로 낮음</li>
+            </ul>
+        </div>
+
+        <div class="warning-box">
+            <h4><i class="fas fa-exclamation-triangle"></i> 주의사항</h4>
+            <ul>
+                <li><strong>메모리 사용량:</strong> GATK는 대용량 메모리 필요 (8GB 이상 권장)</li>
+                <li><strong>처리 시간:</strong> 게놈 크기에 따라 수시간 소요 가능</li>
+                <li><strong>임시 파일:</strong> 충분한 디스크 공간 확보 필요</li>
+                <li><strong>참조 게놈 품질:</strong> 높은 품질의 참조 게놈 사용 중요</li>
+                <li><strong>BAM 품질:</strong> 정렬 품질이 변이 호출 정확도에 직접 영향</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div class="navigation">
+    <button class="nav-btn" onclick="window.location.href='slide06.html'">◀ 이전</button>
+    <button class="nav-btn" onclick="window.location.href='slide08.html'">다음 ▶</button>
+    <button class="fullscreen-btn" onclick="toggleFullscreen()">⛶</button>
+    <button class="jump-btn" onclick="jumpToSlide()">이동</button>
+</div>
+
+<div class="slide-number">슬라이드 7</div>
+
+<script>
+    function prevSlide() {
+        window.location.href = "slide06.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide08.html";
+    }
+    
+    function jumpToIndex() {
+        window.location.href = "index.html";
+    }
+    
+    function toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+    
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToIndex();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
+            toggleFullscreen();
+        }
+    });
+    
+    // Syntax highlighting function
+    function highlightCode() {
+        const codeBlocks = document.querySelectorAll('.code-block');
+        
+        codeBlocks.forEach(block => {
+            const code = block.textContent;
+            const language = block.classList.contains('python') ? 'python' : 
+                           block.classList.contains('bash') ? 'bash' : 'python'; // default to python
+            
+            const highlightedCode = highlightSyntax(code, language);
+            block.innerHTML = highlightedCode;
+            
+            // Add copy button
+            addCopyButton(block, code);
+        });
+    }
+    
+    // Add copy button to code block
+    function addCopyButton(codeBlock, originalCode) {
+        // Check if copy button already exists
+        const container = codeBlock.parentElement;
+        if (container && container.querySelector('.copy-button')) {
+            return; // Copy button already exists
+        }
+        
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.title = 'Copy code to clipboard';
+        
+        copyButton.addEventListener('click', function() {
+            copyToClipboard(originalCode, copyButton);
+        });
+        
+        // Append to container if it exists, otherwise to code block
+        if (container && container.classList.contains('code-block-container')) {
+            container.appendChild(copyButton);
+        } else {
+            codeBlock.style.position = 'relative'; // Ensure positioning context
+            codeBlock.appendChild(copyButton);
+        }
+    }
+    
+    // Copy text to clipboard
+    function copyToClipboard(text, button) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern approach
+            navigator.clipboard.writeText(text).then(function() {
+                showCopySuccess(button);
+            }).catch(function() {
+                fallbackCopyToClipboard(text, button);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyToClipboard(text, button);
+        }
+    }
+    
+    // Fallback copy method
+    function fallbackCopyToClipboard(text, button) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showCopySuccess(button);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+        
+        document.body.removeChild(textArea);
+    }
+    
+    // Show copy success feedback
+    function showCopySuccess(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(function() {
+            button.textContent = originalText;
+            button.classList.remove('copied');
+        }, 2000);
+    }
+    
+    function highlightSyntax(code, language) {
+        if (language === 'python') {
+            return highlightPython(code);
+        } else if (language === 'bash') {
+            return highlightBash(code);
+        }
+        return code;
+    }
+    
+    function highlightPython(code) {
+        let highlighted = code;
+        
+        // 1. Highlight strings first
+        highlighted = highlighted.replace(/"[^"]*"/g, '<span class="string">$&</span>');
+        highlighted = highlighted.replace(/'[^']*'/g, '<span class="string">$&</span>');
+        
+        // 2. Highlight comments
+        highlighted = highlighted.replace(/#.*$/gm, '<span class="comment">$&</span>');
+        
+        // 3. Highlight keywords
+        const keywords = ['import', 'from', 'def', 'if', 'else', 'elif', 'for', 'while', 'try', 'except', 'with', 'as', 'return', 'and', 'or', 'not', 'in', 'is', 'True', 'False', 'None'];
+        keywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+        });
+        
+        // 4. Highlight built-in functions
+        const builtins = ['print', 'len', 'open', 'range', 'enumerate', 'gzip', 'os', 'plt', 'np', 'Counter'];
+        builtins.forEach(builtin => {
+            const regex = new RegExp(`\\b${builtin}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="builtin">${builtin}</span>`);
+        });
+        
+        // 5. Highlight function definitions
+        highlighted = highlighted.replace(/\b(def\s+)(\w+)/g, '$1<span class="function">$2</span>');
+        
+        // 6. Highlight numbers
+        highlighted = highlighted.replace(/\b\d+\b/g, '<span class="number">$&</span>');
+        
+        return highlighted;
+    }
+    
+    function highlightBash(code) {
+        const keywords = ['if', 'then', 'else', 'elif', 'fi', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'local', 'export', 'echo', 'cd', 'ls', 'mkdir', 'cp', 'mv', 'rm', 'chmod', 'chown', 'grep', 'sed', 'awk', 'sort', 'uniq', 'wc', 'cat', 'head', 'tail'];
+        
+        // Split into lines to process line by line (avoids conflicts)
+        const lines = code.split('\n');
+        const highlightedLines = [];
+        
+        for (let line of lines) {
+            let highlighted = line;
+            
+            // Skip if line is empty
+            if (!highlighted.trim()) {
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 1. Highlight shebang
+            if (highlighted.match(/^#!/)) {
+                highlighted = highlighted.replace(/^(#!.*)$/, '<span class="shebang">$1</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 2. Highlight full-line comments
+            if (highlighted.trim().startsWith('#')) {
+                highlighted = highlighted.replace(/^(\s*)(#.*)$/, '$1<span class="comment">$2</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
+            
+            // 3. Highlight strings
+            highlighted = highlighted.replace(/("[^"]*")/g, '<span class="string">$1</span>');
+            highlighted = highlighted.replace(/('[^']*')/g, '<span class="string">$1</span>');
+            
+            // 4. Highlight inline comments (after code)
+            highlighted = highlighted.replace(/(\s+)(#.*)$/, '$1<span class="comment">$2</span>');
+            
+            // 5. Highlight variables
+            highlighted = highlighted.replace(/(\$\w+)/g, '<span class="variable">$1</span>');
+            
+            // 6. Highlight keywords
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+            });
+            
+            highlightedLines.push(highlighted);
+        }
+        
+        return highlightedLines.join('\n');
+    }
+    
+    // Apply syntax highlighting when page loads
+    document.addEventListener('DOMContentLoaded', highlightCode);
+</script>
+
+</body>
+</html>

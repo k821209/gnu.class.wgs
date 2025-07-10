@@ -119,23 +119,23 @@
 cd /home/ubuntu/edu/
 
 # 데이터 디렉토리 구조 확인
-tree soybean_data/ -L 2
+tree raw_data/ -L 2
 
 # 또는 ls 명령어 사용
-ls -la soybean_data/
+ls -la raw_data/
 </div>
             </div>
 
             <div class="code-block-container">
                 <div class="code-block bash">
 # FASTQ 파일 상세 정보 확인
-ls -lh soybean_data/*.fastq.gz
+ls -lh raw_data/*.fastq.gz
 
 # 파일 개수 확인
-ls soybean_data/*.fastq.gz | wc -l
+ls raw_data/*.fastq.gz | wc -l
 
 # 압축 파일 무결성 검사
-for file in soybean_data/*.fastq.gz; do
+for file in raw_data/*.fastq.gz; do
     echo "검사 중: $file"
     gzip -t "$file" && echo "✅ 정상" || echo "❌ 손상됨"
 done
@@ -163,7 +163,7 @@ mkdir -p fastqc_results/raw_data
 # 모든 FASTQ 파일에 대해 FastQC 실행
 fastqc -o fastqc_results/raw_data/ \
        -t 4 \
-       soybean_data/*.fastq.gz
+       raw_data/*.fastq.gz
 
 # 진행 상황 확인
 echo "FastQC 분석 완료!"
@@ -237,8 +237,8 @@ EOF
                 <div class="code-block bash">
 # 첫 번째 샘플 전처리 (ERR3184150)
 trimmomatic PE -threads 4 \
-    soybean_data/ERR3184150_1.fastq.gz \
-    soybean_data/ERR3184150_2.fastq.gz \
+    raw_data/ERR3184150_top_1.fastq.gz \
+    raw_data/ERR3184150_top_2.fastq.gz \
     trimmed_data/ERR3184150_1_paired.fastq.gz \
     trimmed_data/ERR3184150_1_unpaired.fastq.gz \
     trimmed_data/ERR3184150_2_paired.fastq.gz \
@@ -257,8 +257,8 @@ echo "첫 번째 샘플 전처리 완료!"
                 <div class="code-block bash">
 # 두 번째 샘플 전처리 (ERR3184151)
 trimmomatic PE -threads 4 \
-    soybean_data/ERR3184151_1.fastq.gz \
-    soybean_data/ERR3184151_2.fastq.gz \
+    raw_data/ERR3184151_top_1.fastq.gz \
+    raw_data/ERR3184151_top_2.fastq.gz \
     trimmed_data/ERR3184151_1_paired.fastq.gz \
     trimmed_data/ERR3184151_1_unpaired.fastq.gz \
     trimmed_data/ERR3184151_2_paired.fastq.gz \
@@ -290,7 +290,7 @@ ls -lh trimmed_data/
 # 파일 크기 비교
 echo "=== 원본 vs 전처리 파일 크기 비교 ==="
 echo "원본 파일:"
-ls -lh soybean_data/*.fastq.gz
+ls -lh raw_data/*.fastq.gz
 echo ""
 echo "전처리 파일:"
 ls -lh trimmed_data/*_paired.fastq.gz

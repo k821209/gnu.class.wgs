@@ -125,17 +125,14 @@
             <div class="code-block-container">
                 <div class="code-block bash">
 # 참조 게놈 디렉토리 생성
-mkdir -p /home/ubuntu/edu/reference_genome
-cd /home/ubuntu/edu/reference_genome
+mkdir -p /home/ubuntu/edu/reference
+cd /home/ubuntu/edu/reference
 
 # 콩 참조 게놈 다운로드 (예시)
-wget -O soybean_reference.fasta "https://example.com/soybean_genome.fasta"
-
-# 파일 압축 해제 (필요시)
-gunzip -c soybean_reference.fasta.gz > soybean_reference.fasta
+wget -O soybean_genome.fa.gz "https://example.com/soybean_genome.fasta.gz"
 
 # 참조 게놈 크기 확인
-ls -lh soybean_reference.fasta
+ls -lh soybean_genome.fa.gz
 </div>
             </div>
         </div>
@@ -147,19 +144,19 @@ ls -lh soybean_reference.fasta
             <div class="code-block-container">
                 <div class="code-block bash">
 # BWA 인덱스 생성 (시간이 오래 걸릴 수 있음)
-bwa index soybean_reference.fasta
+bwa index soybean_genome.fa.gz
 
 # 생성된 인덱스 파일 확인
-ls -la soybean_reference.fasta.*
+ls -la soybean_genome.fa.gz.*
 </div>
             </div>
             
             <div class="terminal-output">
-soybean_reference.fasta.amb
-soybean_reference.fasta.ann
-soybean_reference.fasta.bwt
-soybean_reference.fasta.pac
-soybean_reference.fasta.sa
+soybean_genome.fa.gz.amb
+soybean_genome.fa.gz.ann
+soybean_genome.fa.gz.bwt
+soybean_genome.fa.gz.pac
+soybean_genome.fa.gz.sa
 </div>
         </div>
 
@@ -171,15 +168,15 @@ soybean_reference.fasta.sa
             <div class="code-block-container">
                 <div class="code-block bash">
 # 작업 디렉토리 설정
-cd /home/ubuntu/edu/soybean_data
+cd /home/ubuntu/edu/
 mkdir -p alignment_results
 
 # BWA-MEM 정렬 실행
 bwa mem -t 4 \
     -R "@RG\tID:soybean_sample\tSM:soybean\tPL:illumina\tLB:lib1\tPU:unit1" \
-    /home/ubuntu/edu/reference_genome/soybean_reference.fasta \
-    trimmed_R1.fastq.gz \
-    trimmed_R2.fastq.gz \
+    /home/ubuntu/edu/reference/soybean_genome.fa.gz \
+    trimmed_data/ERR3184150_1_paired.fastq.gz \
+    trimmed_data/ERR3184150_2_paired.fastq.gz \
     > alignment_results/soybean_aligned.sam
 
 # 정렬 진행 상황 확인
@@ -267,11 +264,15 @@ samtools depth alignment_results/soybean_sorted.bam | head -20
             
             <div class="code-block-container">
                 <div class="code-block python">
+# !pip install koreanize-matplotlib 터미널에 입력하여 설치
+# 설치 후 import로 불러오기
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import subprocess
 import numpy as np
+import koreanize_matplotlib
 
 def analyze_alignment_stats(bam_file):
     """BAM 파일의 정렬 통계를 분석합니다."""
@@ -397,6 +398,7 @@ samtools flagstat alignment_results/soybean_dedup.bam
                 <li><strong>파일 백업:</strong> 중간 결과 파일 백업 권장</li>
             </ul>
         </div>
+
     </div>
 </div>
 
@@ -410,126 +412,229 @@ samtools flagstat alignment_results/soybean_dedup.bam
 <div class="slide-number">슬라이드 6</div>
 
 <script>
-    // 전체 화면 토글
+    function prevSlide() {
+        window.location.href = "slide05.html";
+    }
+    
+    function nextSlide() {
+        window.location.href = "slide07.html";
+    }
+    
+    function jumpToIndex() {
+        window.location.href = "index.html";
+    }
+    
     function toggleFullscreen() {
         if (!document.fullscreenElement) {
             document.documentElement.requestFullscreen();
         } else {
-            document.exitFullscreen();
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
         }
     }
-
-    // 슬라이드 이동
-    function jumpToSlide() {
-        const slideNumber = prompt('이동할 슬라이드 번호를 입력하세요:');
-        if (slideNumber) {
-            window.location.href = `slide${slideNumber.padStart(2, '0')}.html`;
-        }
-    }
-
-    // 키보드 단축키
+    
+    // Keyboard navigation
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowLeft') {
-            window.location.href = 'slide05.html';
-        } else if (e.key === 'ArrowRight') {
-            window.location.href = 'slide07.html';
-        } else if (e.key === 'f' || e.key === 'F') {
+        if (e.key === 'ArrowRight' || e.key === ' ') {
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            prevSlide();
+        } else if (e.key === 'Home') {
+            jumpToIndex();
+        } else if (e.key === 'F11') {
+            e.preventDefault();
             toggleFullscreen();
         }
     });
-
-    // 자동 복사 버튼 생성
-    document.addEventListener('DOMContentLoaded', function() {
-        const codeBlocks = document.querySelectorAll('.code-block');
-        codeBlocks.forEach(function(block) {
-            const button = document.createElement('button');
-            button.className = 'copy-button';
-            button.textContent = '복사';
-            button.onclick = function() {
-                navigator.clipboard.writeText(block.textContent).then(() => {
-                    button.classList.add('copied');
-                    setTimeout(() => button.classList.remove('copied'), 2000);
-                });
-            };
-            block.appendChild(button);
-        });
-    });
-
-    // 구문 강조
-    function highlightSyntax() {
+    
+    // Syntax highlighting function
+    function highlightCode() {
         const codeBlocks = document.querySelectorAll('.code-block');
         
-        codeBlocks.forEach(function(block) {
-            let code = block.innerHTML;
+        codeBlocks.forEach(block => {
+            const code = block.textContent;
+            const language = block.classList.contains('python') ? 'python' : 
+                           block.classList.contains('bash') ? 'bash' : 'python'; // default to python
             
-            // 복사 버튼 제거 (임시)
-            const copyButton = block.querySelector('.copy-button');
-            if (copyButton) {
-                copyButton.remove();
-            }
+            const highlightedCode = highlightSyntax(code, language);
+            block.innerHTML = highlightedCode;
             
-            // 코드 블록 유형 확인
-            if (block.classList.contains('bash')) {
-                code = highlightBash(code);
-            } else if (block.classList.contains('python')) {
-                code = highlightPython(code);
-            }
-            
-            block.innerHTML = code;
-            
-            // 복사 버튼 다시 추가
-            if (copyButton) {
-                block.appendChild(copyButton);
-            }
+            // Add copy button
+            addCopyButton(block, code);
         });
     }
-
+    
+    // Add copy button to code block
+    function addCopyButton(codeBlock, originalCode) {
+        // Check if copy button already exists
+        const container = codeBlock.parentElement;
+        if (container && container.querySelector('.copy-button')) {
+            return; // Copy button already exists
+        }
+        
+        const copyButton = document.createElement('button');
+        copyButton.className = 'copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.title = 'Copy code to clipboard';
+        
+        copyButton.addEventListener('click', function() {
+            copyToClipboard(originalCode, copyButton);
+        });
+        
+        // Append to container if it exists, otherwise to code block
+        if (container && container.classList.contains('code-block-container')) {
+            container.appendChild(copyButton);
+        } else {
+            codeBlock.style.position = 'relative'; // Ensure positioning context
+            codeBlock.appendChild(copyButton);
+        }
+    }
+    
+    // Copy text to clipboard
+    function copyToClipboard(text, button) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            // Modern approach
+            navigator.clipboard.writeText(text).then(function() {
+                showCopySuccess(button);
+            }).catch(function() {
+                fallbackCopyToClipboard(text, button);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyToClipboard(text, button);
+        }
+    }
+    
+    // Fallback copy method
+    function fallbackCopyToClipboard(text, button) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            document.execCommand('copy');
+            showCopySuccess(button);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+        
+        document.body.removeChild(textArea);
+    }
+    
+    // Show copy success feedback
+    function showCopySuccess(button) {
+        const originalText = button.textContent;
+        button.textContent = 'Copied!';
+        button.classList.add('copied');
+        
+        setTimeout(function() {
+            button.textContent = originalText;
+            button.classList.remove('copied');
+        }, 2000);
+    }
+    
+    function highlightSyntax(code, language) {
+        if (language === 'python') {
+            return highlightPython(code);
+        } else if (language === 'bash') {
+            return highlightBash(code);
+        }
+        return code;
+    }
+    
+    function highlightPython(code) {
+        let highlighted = code;
+        
+        // 1. Highlight strings first
+        highlighted = highlighted.replace(/"[^"]*"/g, '<span class="string">$&</span>');
+        highlighted = highlighted.replace(/'[^']*'/g, '<span class="string">$&</span>');
+        
+        // 2. Highlight comments
+        highlighted = highlighted.replace(/#.*$/gm, '<span class="comment">$&</span>');
+        
+        // 3. Highlight keywords
+        const keywords = ['import', 'from', 'def', 'if', 'else', 'elif', 'for', 'while', 'try', 'except', 'with', 'as', 'return', 'and', 'or', 'not', 'in', 'is', 'True', 'False', 'None'];
+        keywords.forEach(keyword => {
+            const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+        });
+        
+        // 4. Highlight built-in functions
+        const builtins = ['print', 'len', 'open', 'range', 'enumerate', 'gzip', 'os', 'plt', 'np', 'Counter', 'subprocess', 'pd', 'sns', 'matplotlib'];
+        builtins.forEach(builtin => {
+            const regex = new RegExp(`\\b${builtin}\\b`, 'g');
+            highlighted = highlighted.replace(regex, `<span class="builtin">${builtin}</span>`);
+        });
+        
+        // 5. Highlight function definitions
+        highlighted = highlighted.replace(/\b(def\s+)(\w+)/g, '$1<span class="function">$2</span>');
+        
+        // 6. Highlight numbers
+        highlighted = highlighted.replace(/\b\d+\b/g, '<span class="number">$&</span>');
+        
+        return highlighted;
+    }
+    
     function highlightBash(code) {
+        const keywords = ['if', 'then', 'else', 'elif', 'fi', 'for', 'while', 'do', 'done', 'case', 'esac', 'function', 'return', 'local', 'export', 'echo', 'cd', 'ls', 'mkdir', 'cp', 'mv', 'rm', 'chmod', 'chown', 'grep', 'sed', 'awk', 'sort', 'uniq', 'wc', 'cat', 'head', 'tail', 'bwa', 'samtools', 'java'];
+        
+        // Split into lines to process line by line (avoids conflicts)
         const lines = code.split('\n');
-        const highlightedLines = lines.map(line => {
-            // 주석 처리
-            if (line.trim().startsWith('#')) {
-                return `<span class="comment">${line}</span>`;
+        const highlightedLines = [];
+        
+        for (let line of lines) {
+            let highlighted = line;
+            
+            // Skip if line is empty
+            if (!highlighted.trim()) {
+                highlightedLines.push(highlighted);
+                continue;
             }
             
-            // 명령어 강조
-            line = line.replace(/\b(bwa|samtools|java|mkdir|cd|wget|ls|gunzip|head)\b/g, '<span class="keyword">$1</span>');
+            // 1. Highlight shebang
+            if (highlighted.match(/^#!/)) {
+                highlighted = highlighted.replace(/^(#!.*)$/, '<span class="shebang">$1</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
             
-            // 옵션 강조
-            line = line.replace(/\s(-[a-zA-Z]+)/g, ' <span class="param">$1</span>');
+            // 2. Highlight full-line comments
+            if (highlighted.trim().startsWith('#')) {
+                highlighted = highlighted.replace(/^(\s*)(#.*)$/, '$1<span class="comment">$2</span>');
+                highlightedLines.push(highlighted);
+                continue;
+            }
             
-            // 파일 경로 강조
-            line = line.replace(/([\/\w\.-]+\.(bam|sam|fasta|fastq|gz|txt))/g, '<span class="string">$1</span>');
+            // 3. Highlight strings
+            highlighted = highlighted.replace(/("[^"]*")/g, '<span class="string">$1</span>');
+            highlighted = highlighted.replace(/('[^']*')/g, '<span class="string">$1</span>');
             
-            return line;
-        });
+            // 4. Highlight inline comments (after code)
+            highlighted = highlighted.replace(/(\s+)(#.*)$/, '$1<span class="comment">$2</span>');
+            
+            // 5. Highlight variables
+            highlighted = highlighted.replace(/(\$\w+)/g, '<span class="variable">$1</span>');
+            
+            // 6. Highlight keywords
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+            });
+            
+            highlightedLines.push(highlighted);
+        }
         
         return highlightedLines.join('\n');
     }
-
-    function highlightPython(code) {
-        // Python 키워드
-        code = code.replace(/\b(import|from|def|return|if|elif|else|for|while|try|except|finally|with|as|class|print|True|False|None)\b/g, '<span class="keyword">$1</span>');
-        
-        // 함수명
-        code = code.replace(/\b([a-zA-Z_][a-zA-Z0-9_]*)\s*\(/g, '<span class="function">$1</span>(');
-        
-        // 문자열
-        code = code.replace(/(["'])([^"']*)\1/g, '<span class="string">$1$2$1</span>');
-        
-        // 주석
-        code = code.replace(/(#.*$)/gm, '<span class="comment">$1</span>');
-        
-        // 숫자
-        code = code.replace(/\b(\d+\.?\d*)\b/g, '<span class="number">$1</span>');
-        
-        return code;
-    }
-
-    // 페이지 로드 시 구문 강조 적용
-    document.addEventListener('DOMContentLoaded', function() {
-        highlightSyntax();
-    });
+    
+    // Apply syntax highlighting when page loads
+    document.addEventListener('DOMContentLoaded', highlightCode);
 </script>
 
 </body>
